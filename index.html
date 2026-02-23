@@ -321,10 +321,45 @@
 
         const systemPromptText = "Si SOS Gremlin. Slog: šaljiv, strog, svetovalen. Govori slovensko. Vrni JSON s polji: 'intro', 'explanation_q', 'appreciate', 'inquire', 'synthesis'.";
         
-        const systemPromptDiscrete = `Si tehnični klasifikator nevroloških stanj.
-        KLASIFIKACIJA GREMLINOV (type): nimam_casa, prijazen, konflikt, napaka, dokoncati, kontrola, nisem_dober, stisni, generic.
-        KLASIFIKACIJA VAJ (final_vaja_id): vprašanja, zahteve_viri, namen, cikel_daj_sprejmi, reaktivnost, poimenuj, pozornost, resnica, koherenca, dih, škatla, ego, pesti, sprostitev, čuti, gibanje, vidim_slišim, zavest, varnost, sistem, izbira, dovolj.
-        Vrni SAMO JSON s poljem 'type' ali 'final_vaja_id'.`;
+        // ZELO STROG PROMPT ZA KLASIFIKACIJO (Tukaj so opisani vsi vzorci, da AI ne beži v 'generic')
+        const systemPromptDiscrete = `Si tehnični klasifikator nevroloških stanj. Tvoja naloga je natančno uvrstiti vnos. PREPOVEDANO je uporabiti 'generic', razen če vnos res nima nobenega smisla.
+        
+        KLASIFIKACIJA GREMLINOV (vrni ključ v polju 'type'):
+        - nimam_casa: hitenje, preobremenjenost, pomanjkanje časa.
+        - prijazen: ugajanje drugim, strah pred zavrnitvijo.
+        - konflikt: izogibanje prepirom, strah pred soočenjem.
+        - napaka: perfekcionizem, strah pred neuspehom, "kaj če zamočim".
+        - dokoncati: nujnost, da se vse zaključi takoj, nezmožnost odložiti delo.
+        - kontrola: mikromanagement, nezaupanje.
+        - nisem_dober: samokritika, nizka samopodoba, "nisem sposoben".
+        - stisni: ignoriranje utrujenosti, preživetveni način, "saj bo šlo".
+        - generic: samo za nesmiselne ali popolnoma prazne vnose.
+
+        KLASIFIKACIJA VAJ (vrni ključ v polju 'final_vaja_id'):
+        - vprašanja: negativne misli, samokritika.
+        - zahteve_viri: preobremenjenost.
+        - namen: izguba motivacije, avtopilot.
+        - cikel_daj_sprejmi: osamljenost, zapiranje vase.
+        - reaktivnost: napetost po stresu.
+        - poimenuj: notranji kaos, zmedenost.
+        - pozornost: ponavljajoče se misli (ruminacija).
+        - resnica: črnogledost, scenariji.
+        - koherenca: notranji nemir, raztresenost.
+        - dih: plitvo dihanje, reset.
+        - škatla: močan stres, panika.
+        - ego: frustracija, zadržana energija.
+        - pesti: jeza, nemoč.
+        - sprostitev: utrujenost, nezmožnost sprostitve.
+        - čuti: izguba stika z okolico.
+        - gibanje: togo, zakrčeno telo.
+        - vidim_slišim: ujetost v skrbeh.
+        - zavest: hitenje, ustavitev.
+        - varnost: misel prevzame um.
+        - sistem: odrezanost od telesa.
+        - izbira: pred pomembno odločitvijo.
+        - dovolj: perfekcionizem, občutek nujnosti.
+        
+        Vrni SAMO čist JSON objekt, brez markdowna. Primeri: {"type": "napaka"} ali {"final_vaja_id": "škatla"}`;
 
         function log(msg) { 
             const dbg = document.getElementById('debug-log'); 
@@ -484,6 +519,9 @@
                 speak("Kateri glas ti danes vztrajno šepeta?");
                 state.introPlayed = true;
                 log("Intro nagovor predvajan. Pritisni ponovno za snemanje.");
+                
+                // Vizualni namig, da mora uporabnik ponovno pritisniti
+                document.getElementById(inputId).placeholder = "Pritisni še enkrat za snemanje...";
                 return;
             }
 
@@ -502,11 +540,13 @@
             recognition.onstart = () => { 
                 document.getElementById(`mic-${inputId}`).classList.add('mic-active');
                 inputEl.value = "";
+                inputEl.placeholder = "Poslušam...";
                 log("Mikrofon posluša...");
             };
             
             recognition.onresult = (e) => {
                 let fullTranscript = "";
+                // STABILNA LOGIKA BREZ PODVAJANJA NA TELEFONU
                 for (let i = e.resultIndex; i < e.results.length; i++) {
                     fullTranscript += e.results[i][0].transcript;
                 }
@@ -524,6 +564,7 @@
             recognition.onend = () => {
                 document.getElementById(`mic-${inputId}`).classList.remove('mic-active');
                 recognition = null;
+                inputEl.placeholder = "Zapiši misel..."; // Ponastavitev placeholderja
                 if (inputEl && inputEl.value.trim().length > 2 && callback) callback();
             };
             recognition.start();
