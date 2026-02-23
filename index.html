@@ -87,6 +87,7 @@
             border: 3px solid var(--text-dark);
             box-shadow: 4px 4px 0px 0px var(--text-dark);
             text-transform: uppercase;
+            transition: opacity 0.2s;
         }
 
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -118,9 +119,15 @@
         }
     </style>
 </head>
-<body onclick="initGlobalAudio()">
+<body>
 
-    <nav class="max-w-md mx-auto w-full flex items-center justify-between py-4 px-4">
+    <!-- PROSOJNI OVERLAY ZA ČAKANJE (Slika in zaslon ostaneta vidna v ozadju!) -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="w-16 h-16 border-[6px] border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <p id="loading-text" class="text-xl font-black text-indigo-700 animate-pulse mt-6 uppercase text-center px-4">Brskam po tvojih možganih...</p>
+    </div>
+
+    <nav class="max-w-md mx-auto w-full flex items-center justify-between py-4 px-4 relative z-10">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white border-2 border-black">
                 <i class="fa-solid fa-brain"></i>
@@ -132,7 +139,7 @@
         </button>
     </nav>
 
-    <main class="max-w-md mx-auto w-full flex-grow flex flex-col items-center px-4 pb-12">
+    <main class="max-w-md mx-auto w-full flex-grow flex flex-col items-center px-4 pb-12 relative z-10">
         
         <div id="steps-container" class="w-full flex-grow flex flex-col justify-center">
             
@@ -148,22 +155,12 @@
                     </div>
                     <div class="input-wrapper">
                         <div class="relative bg-slate-50 rounded-xl p-3 border-2 border-slate-200">
+                            <!-- Odstranjen placeholder dokler uporabnik ne klikne mic -->
                             <textarea id="thought-input" rows="2" class="w-full bg-transparent text-lg text-center outline-none resize-none font-bold text-slate-800" placeholder="Zapiši misel..." data-original="Zapiši misel..."></textarea>
                             <button onclick="event.stopPropagation(); toggleListening('thought-input', identifyGremlin)" id="mic-thought-input" class="absolute right-1 bottom-1 mic-btn"><i class="fa-solid fa-microphone"></i></button>
                         </div>
                     </div>
                     <button id="btn-submit-1" onclick="identifyGremlin()" class="btn-primary">RAZKRINKAJ GA</button>
-                </div>
-            </div>
-
-            <!-- NALAGANJE -->
-            <div id="step-loading" class="step-content hidden">
-                <div class="card-tile text-center py-10">
-                    <div class="technical-name-label">AI_ANALIZA...</div>
-                    <div class="image-container mx-auto">
-                        <div class="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                    </div>
-                    <p id="loading-text" class="text-lg font-black text-indigo-700 animate-pulse mt-4 uppercase">Brskam po tvojih možganih...</p>
                 </div>
             </div>
 
@@ -177,14 +174,14 @@
                     <div class="text-output-area">
                         <p id="gremlin-intro" class="text-md font-bold italic text-indigo-900 bg-indigo-50 p-3 rounded-xl shadow-sm"></p>
                     </div>
-                    <div class="input-wrapper text-center">
-                        <label class="text-xl font-black uppercase text-indigo-600 mb-3 block animate-bounce">Daj mu ime:</label>
+                    <div class="input-wrapper text-center mt-2">
+                        <label class="text-2xl font-black uppercase text-indigo-600 mb-3 block animate-bounce">Daj mi ime:</label>
                         <div class="relative bg-white rounded-xl border-4 border-slate-900 overflow-hidden shadow-lg">
                             <input type="text" id="gremlin-name" class="w-full bg-transparent p-5 text-center text-indigo-700 text-3xl font-black outline-none uppercase placeholder:text-slate-200" placeholder="KDO SEM?" data-original="KDO SEM?">
                             <button onclick="event.stopPropagation(); toggleListening('gremlin-name', nameGremlin)" id="mic-gremlin-name" class="absolute right-1 top-1/2 -translate-y-1/2 mic-btn"><i class="fa-solid fa-microphone"></i></button>
                         </div>
                     </div>
-                    <button id="btn-submit-2" onclick="nameGremlin()" class="btn-primary">USTVARI IME</button>
+                    <button id="btn-submit-2" onclick="nameGremlin()" class="btn-primary mt-2">USTVARI IME</button>
                 </div>
             </div>
 
@@ -313,7 +310,8 @@
         let state = { 
             thought: "", gremlinName: "", gremlinData: { type: "generic" }, 
             dialogAnswer: "", inquireAnswer: "", isMuted: false, 
-            interactionStarted: false, introPlayed: false, isLoading: false 
+            interactionStarted: false, introPlayed: false, isLoading: false,
+            audioUnlocked: false // Dodana spremenljivka za varnostno odklepanje zvoka
         };
         let recognition = null;
         let silenceTimer = null;
@@ -324,13 +322,24 @@
         GREMLINI (type): nimam_casa, prijazen, konflikt, napaka, dokoncati, kontrola, nisem_dober, stisni.
         VAJE (final_vaja_id): 1-vaja do 22-vaja. Izberi na podlagi konteksta stresa.`;
 
-        // ZAGON GOVORA OB PRVEM DOTIKU KAKORKOLI NA ZASLON
-        function initGlobalAudio() {
-            if (!state.interactionStarted) {
-                state.interactionStarted = true;
-                if (window.speechSynthesis) window.speechSynthesis.getVoices();
-                speak("Kateri glas ti danes vztrajno šepeta?");
-                state.introPlayed = true;
+        // ==========================================
+        // POPRAVEK 1: ZANESLJIV ODKLEP ZVOKA (MOBILE)
+        // Poslušamo 'touchstart' in 'click' v fazi zajema (capture), da ne ignorira ustavljenih dogodkov.
+        // ==========================================
+        window.addEventListener('touchstart', unlockSpeech, { once: true, capture: true });
+        window.addEventListener('click', unlockSpeech, { once: true, capture: true });
+
+        function unlockSpeech() {
+            if (state.audioUnlocked) return;
+            state.audioUnlocked = true;
+            
+            // Neviden, neslišen zvok za odklep iOS/Android zvočnega modula
+            const unlockMsg = new SpeechSynthesisUtterance('');
+            unlockMsg.volume = 0;
+            window.speechSynthesis.speak(unlockMsg);
+            
+            if (window.speechSynthesis.getVoices) {
+                window.speechSynthesis.getVoices();
             }
         }
 
@@ -340,11 +349,26 @@
             if (state.isMuted && window.speechSynthesis) window.speechSynthesis.cancel();
         }
 
+        // ==========================================
+        // POPRAVEK 2: ANDROID 'CANCEL' HROŠČ
+        // ==========================================
         function speak(text) {
             if (state.isMuted || !window.speechSynthesis || !text) return;
             const clean = String(text).replace(/\{.*?\}/g, "").replace(/[\[\]\{\}\"]/g, "").trim();
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(clean); u.lang = 'sl-SI'; window.speechSynthesis.speak(u);
+            if (!clean) return;
+
+            // Varnostno preverimo, ali sistem že govori
+            if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+                window.speechSynthesis.cancel();
+            }
+
+            // iOS in Android (še posebej Chrome) potrebujeta droben premor po "cancel",
+            // sicer prekličeta tudi NOVO zahtevo za govor (kar povzroči tišino).
+            setTimeout(() => {
+                const u = new SpeechSynthesisUtterance(clean); 
+                u.lang = 'sl-SI'; 
+                window.speechSynthesis.speak(u);
+            }, 50); 
         }
 
         function safeParse(text) {
@@ -357,7 +381,13 @@
         function startLoading() {
             state.isLoading = true;
             document.querySelectorAll('.btn-primary').forEach(b => b.disabled = true);
-            showStep('loading');
+            
+            // PRIKAŽE PROSOJNO PLAST
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.remove('opacity-0', 'pointer-events-none');
+            overlay.classList.add('opacity-100', 'pointer-events-auto');
+
+            document.getElementById('loading-text').innerText = loadingMessages[0];
             loadingInterval = setInterval(() => {
                 document.getElementById('loading-text').innerText = loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
             }, 1500);
@@ -366,6 +396,12 @@
         function stopLoading() {
             state.isLoading = false;
             document.querySelectorAll('.btn-primary').forEach(b => b.disabled = false);
+            
+            // SKRIJE PROSOJNO PLAST
+            const overlay = document.getElementById('loading-overlay');
+            overlay.classList.remove('opacity-100', 'pointer-events-auto');
+            overlay.classList.add('opacity-0', 'pointer-events-none');
+
             if (loadingInterval) clearInterval(loadingInterval);
         }
 
@@ -413,7 +449,9 @@
             const textData = safeParse(textRes);
             const logicData = safeParse(logicRes);
 
-            const sType = validGremlins.includes(logicData.type) ? logicData.type : "generic";
+            const rawType = String(logicData.type || "generic").toLowerCase().replace(/[^a-z_]/g, "");
+            const sType = validGremlins.includes(rawType) ? rawType : "generic";
+            
             state.gremlinData.type = sType;
             updateGremlinVisuals(sType);
 
@@ -495,13 +533,18 @@
             const textData = safeParse(textRes);
             const logicData = safeParse(logicRes);
 
-            const exId = exercises.has(logicData.final_vaja_id) ? logicData.final_vaja_id : "10-vaja";
+            const exIdRaw = String(logicData.final_vaja_id || "10-vaja").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+            const exId = exercises.has(exIdRaw) ? exIdRaw : "10-vaja";
             const ex = exercises.get(exId);
 
             stopLoading();
             showStep(6);
-            document.getElementById('vaja-img').src = `images/vaje/${exId}.png`;
-            document.getElementById('vaja-img').style.opacity = "1";
+            
+            const imgEl = document.getElementById('vaja-img');
+            imgEl.src = `images/vaje/${exId}.png`;
+            imgEl.onerror = () => { imgEl.src = 'images/gremlins/generic.png'; };
+            imgEl.style.opacity = "1";
+            
             document.getElementById('label-step6').innerText = exId.toUpperCase() + ".PNG";
             document.getElementById('vaja-title').innerText = ex.title;
             document.getElementById('vaja-how').innerText = ex.how;
@@ -513,19 +556,26 @@
         }
 
         function toggleListening(inputId, callback) {
-            stopSpeechAndMic(); // Bot takoj utihne
+            stopSpeechAndMic(); 
             
             const inputEl = document.getElementById(inputId);
             const micBtn = document.getElementById(`mic-${inputId}`);
 
-            // ČE ŽE SNEMAMO, DRUGI KLIK POŠLJE TAKOJ
             if (recognition) {
-                recognition.stop(); // To bo sprožilo onend in posledično callback()
+                recognition.stop(); 
                 return;
             }
 
             const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!Speech) return;
+            
+            if (inputId === 'thought-input' && !state.introPlayed) {
+                // Odstranili smo neposreden "speak()" tukaj. Namesto tega:
+                speak("Kateri glas ti danes vztrajno šepeta?");
+                state.introPlayed = true;
+                inputEl.placeholder = "Pritisni še enkrat za snemanje...";
+                return;
+            }
             
             recognition = new Speech(); 
             recognition.lang = 'sl-SI'; 
@@ -536,18 +586,30 @@
                 micBtn.classList.add('mic-active');
                 inputEl.value = "";
                 inputEl.placeholder = "Poslušam...";
+                inputEl.readOnly = true; 
             };
 
-            recognition.onerror = (e) => {
-                stopSpeechAndMic();
-            };
+            recognition.onerror = (e) => { stopSpeechAndMic(); };
             
             recognition.onresult = (e) => {
-                let transcript = "";
-                for (let i = 0; i < e.results.length; i++) { transcript += e.results[i][0].transcript; }
-                if (inputEl) inputEl.value = transcript;
+                let combinedText = "";
+                for (let i = 0; i < e.results.length; i++) {
+                    let segment = e.results[i][0].transcript.trim();
+                    if (combinedText.length > 0) {
+                        let combinedLower = combinedText.toLowerCase();
+                        let segmentLower = segment.toLowerCase();
+                        if (segmentLower.startsWith(combinedLower)) {
+                            combinedText = segment; 
+                        } else if (!combinedLower.endsWith(segmentLower)) {
+                            combinedText += " " + segment; 
+                        }
+                    } else {
+                        combinedText = segment;
+                    }
+                }
                 
-                // 3s BUFFER TIŠINE ZA SAMODEJNO ODDAJO
+                if (inputEl) inputEl.value = combinedText;
+                
                 if (silenceTimer) clearTimeout(silenceTimer);
                 silenceTimer = setTimeout(() => {
                     if (recognition) { recognition.stop(); }
@@ -556,10 +618,10 @@
             
             recognition.onend = () => {
                 micBtn.classList.remove('mic-active');
+                inputEl.readOnly = false; 
                 inputEl.placeholder = inputEl.dataset.original;
                 const finalVal = inputEl.value.trim();
                 recognition = null;
-                // Callback se sproži samo, če je nekaj vpisano
                 if (finalVal.length > 2 && callback) callback();
             };
             recognition.start();
@@ -570,11 +632,12 @@
             if (recognition) { 
                 const r = recognition; 
                 recognition = null; 
-                r.onend = null; // Preprečimo neskončne zanke
+                r.onend = null; 
                 r.stop(); 
             }
             if (window.speechSynthesis) window.speechSynthesis.cancel();
             document.querySelectorAll('.mic-active').forEach(el => el.classList.remove('mic-active'));
+            document.querySelectorAll('textarea, input').forEach(el => el.readOnly = false);
         }
 
         function showStep(num) {
