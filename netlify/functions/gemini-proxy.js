@@ -1,90 +1,52 @@
 /**
- * SOS Gremlin - Glavna procesna funkcija (Gemini 2.5 Flash)
- * Ta funkcija varno poveže tvoj telefon z umetno inteligenco Gemini.
- * Navodila (Master Persona) se varno naložijo iz Netlify okolja.
+ * SOS Gremlin - Netlify Proxy Funkcija
+ * POSODOBLJENA VERZIJA: Podpira prenos polnih sistemskih navodil.
  */
 
 const apiKey = process.env.GEMINI_API_KEY;
-const gemPersona = process.env.GEM_PERSONA;
 
 exports.handler = async function (event, context) {
-    // Dovoli samo POST zahteve
     if (event.httpMethod !== "POST") {
-        return { 
-            statusCode: 405, 
-            body: JSON.stringify({ error: "Metoda ni dovoljena." }) 
-        };
+        return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
     }
     
     try {
-        // Preverjanje sistemskih spremenljivk v Netlify nadzorni plošči
-        if (!apiKey) throw new Error("Manjka GEMINI_API_KEY v Netlify nastavitvah.");
-        if (!gemPersona) throw new Error("Manjka GEM_PERSONA v Netlify nastavitvah.");
+        if (!apiKey) throw new Error("GEMINI_API_KEY missing");
 
-        const incoming = JSON.parse(event.body);
+        const body = JSON.parse(event.body);
         
-        // Priprava podatkov za Google Gemini 2.5 Flash
+        // Združimo frontend sistemska navodila s tistimi iz okolja (če obstajajo)
+        const systemInstruction = body.systemInstruction || { parts: [{ text: "Si SOS asistent." }] };
+
         const payload = {
-            contents: incoming.contents,
-            systemInstruction: { 
-                parts: [{ text: gemPersona }] 
-            },
-            generationConfig: {
+            contents: body.contents,
+            systemInstruction: systemInstruction,
+            generationConfig: body.generationConfig || {
                 responseMimeType: "application/json",
-                temperature: 0.1 // Nizka temperatura zagotavlja strogo sledenje JSON formatu
+                temperature: 0.1 
             }
         };
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
-        const response = await fetch(url, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || "Napaka pri komunikaciji z AI.");
+            const err = await response.json();
+            throw new Error(err.error?.message || "AI API Error");
         }
 
         const data = await response.json();
-        
-        // Pridobivanje surovega besedila iz odgovora
-        let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        
-        /**
-         * AGRESIVNO ČIŠČENJE (Varnostna varovalka):
-         * Odstrani vse Markdown oznake (```json) in morebitne znake pred/za JSON objektom.
-         * To prepreči napake pri JSON.parse() v tvoji index.html datoteki.
-         */
-        const cleanedText = rawText
-            .replace(/```json/g, "")
-            .replace(/```/g, "")
-            .replace(/^[^\{]*/, "") // Pobriše vse pred prvim zavitim oklepajem {
-            .replace(/[^\}]*$/, "") // Pobriše vse po zadnjem zavitem oklepaju }
-            .trim();
-
         return {
             statusCode: 200,
-            headers: { 
-                "Access-Control-Allow-Origin": "*", 
-                "Content-Type": "application/json" 
-            },
-            body: JSON.stringify({
-                candidates: [{
-                    content: {
-                        parts: [{ text: cleanedText }]
-                    }
-                }]
-            })
+            headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+            body: JSON.stringify(data)
         };
 
     } catch (error) {
         console.error("Proxy Error:", error.message);
-        return { 
-            statusCode: 500, 
-            body: JSON.stringify({ error: error.message }) 
-        };
+        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
     }
 };
