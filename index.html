@@ -380,6 +380,36 @@
         let loadingInterval = null;
         window.currentUtterance = null;
 
+        // ==========================================
+        // NAPREDNA LOGIKA ZA NALAGANJE GLASOV (ANDROID FIX)
+        // ==========================================
+        let cachedVoices = [];
+
+        function loadVoices() {
+            if (window.speechSynthesis) {
+                cachedVoices = window.speechSynthesis.getVoices();
+            }
+        }
+
+        if (window.speechSynthesis) {
+            loadVoices();
+            // Ko naprava (Android) v ozadju naloži glasove, posodobimo seznam
+            if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                window.speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }
+
+        function getBestVoice() {
+            if (!cachedVoices.length && window.speechSynthesis) {
+                cachedVoices = window.speechSynthesis.getVoices();
+            }
+            // 1. Poskus: Točna slovenščina
+            let voice = cachedVoices.find(v => v.lang === 'sl-SI' || v.lang === 'sl_SI' || v.lang === 'sl');
+            // 2. Poskus: Privzeti glas naprave (fallback za telefone brez slovenščine, da ne zmrznejo)
+            if (!voice && cachedVoices.length > 0) voice = cachedVoices.find(v => v.default) || cachedVoices[0];
+            return voice;
+        }
+
         const sysPromptPersona = "Si SOS Gremlin. Slog: šaljiv, strog, svetovalen. Govori slovensko. Vrni JSON s polji: 'intro', 'explanation_q', 'appreciate', 'inquire', 'synthesis'.";
         const sysPromptLogic = `Si klasifikator. Vrni SAMO čist JSON. GREMLINI (type): nimam_casa, prijazen, konflikt, napaka, dokoncati, kontrola, nisem_dober, stisni. VAJE (final_vaja_id): 1-vaja do 22-vaja.`;
 
@@ -432,12 +462,28 @@
         function speak(text) {
             if (state.isMuted || !window.speechSynthesis || !text) return;
             const clean = String(text).replace(/\{.*?\}/g, "").replace(/[\[\]\{\}\"]/g, "").trim();
-            if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+            if (!clean) return;
+
+            if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+                window.speechSynthesis.cancel();
+            }
+            
             setTimeout(() => {
                 window.currentUtterance = new SpeechSynthesisUtterance(clean); 
-                window.currentUtterance.lang = 'sl-SI'; 
+                
+                // PRIDOBI NAJBOLJŠI GLAS IN GA NASTAVI (Prepreči tišino na Androidih brez sl-SI)
+                const bestVoice = getBestVoice();
+                if (bestVoice) {
+                    window.currentUtterance.voice = bestVoice;
+                    window.currentUtterance.lang = bestVoice.lang; // Uporabi dejanski jezik najdenega glasu
+                } else {
+                    window.currentUtterance.lang = 'sl-SI'; // Ultimativni fallback
+                }
+
                 window.speechSynthesis.speak(window.currentUtterance);
-                window.speechSynthesis.resume();
+                if (window.speechSynthesis.resume) {
+                    window.speechSynthesis.resume(); // Android varovalka
+                }
             }, 50); 
         }
 
