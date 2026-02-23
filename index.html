@@ -28,7 +28,6 @@
             overflow-x: hidden;
         }
 
-        /* Kartice - Visok kontrast */
         .card-tile {
             background: #ffffff;
             border: 3px solid var(--text-dark);
@@ -38,7 +37,7 @@
             width: 100%;
         }
 
-        /* STRESOMER - Nihanje in animacija */
+        /* STRESOMER - Overshoot animacija */
         .stress-bar-container {
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
@@ -48,11 +47,9 @@
         }
 
         @keyframes stressShake {
-            0%, 100% { transform: rotate(0deg) scale(1); }
-            20% { transform: rotate(2deg) scale(1.03); }
-            40% { transform: rotate(-2deg) scale(1.03); }
-            60% { transform: rotate(1deg) scale(1.01); }
-            80% { transform: rotate(-1deg) scale(1.01); }
+            0%, 100% { transform: rotate(0deg); }
+            20% { transform: rotate(2deg); }
+            60% { transform: rotate(-1deg); }
         }
 
         .stress-track {
@@ -69,19 +66,18 @@
             height: 100%;
             width: 0%;
             background: linear-gradient(90deg, #6366f1, #ef4444);
-            transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            /* Overshoot: gre malo čez in nazaj */
+            transition: width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        /* Slike - Preprečevanje zamegljenosti */
         img {
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
         }
 
-        /* Utripajoče besedilo */
         .pulse-text {
             animation: textPulse 1.5s infinite;
-            font-size: 1.3rem;
+            font-size: 1.4rem;
             font-weight: 900;
             text-transform: uppercase;
             color: var(--brand-indigo);
@@ -90,7 +86,7 @@
         }
         @keyframes textPulse {
             0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(0.98); }
+            50% { opacity: 0.7; transform: scale(0.97); }
         }
 
         .mic-active { 
@@ -152,17 +148,6 @@
             overflow-y: auto;
             border: 1px solid #334155;
         }
-        
-        .error-box {
-            background: #fef2f2;
-            color: #b91c1c;
-            padding: 1rem;
-            border-radius: 1rem;
-            border: 2px solid #f87171;
-            font-size: 0.8rem;
-            font-weight: bold;
-            text-align: center;
-        }
     </style>
 </head>
 <body class="p-4" onclick="initAudio()">
@@ -174,11 +159,14 @@
             </div>
             <h1 class="text-xl font-black uppercase text-slate-900">SOS Gremlin</h1>
         </div>
+        <button onclick="toggleMute()" id="mute-btn" class="w-10 h-10 flex items-center justify-center rounded-full border-2 border-slate-900 bg-white text-slate-900">
+            <i class="fa-solid fa-volume-high"></i>
+        </button>
     </nav>
 
     <main class="max-w-md mx-auto w-full flex-grow flex flex-col items-center">
         
-        <!-- STRESOMER - Vedno na vrhu po prvem koraku -->
+        <!-- STRESOMER - Na vseh ekranih po začetku -->
         <div id="stress-widget" class="w-full mb-6 hidden stress-bar-container">
             <div class="flex justify-between items-end mb-1 px-1">
                 <span class="text-[10px] font-black uppercase text-indigo-900 tracking-widest">Notranji pritisk</span>
@@ -195,7 +183,6 @@
         
         <div id="steps-container" class="w-full flex-grow flex flex-col justify-center">
             
-            <!-- 1. IDENTIFIKACIJA -->
             <div id="step-1" class="step-content">
                 <div class="card-tile space-y-5">
                     <h2 class="text-xl font-extrabold text-slate-900 text-center leading-tight">Kateri glas ti danes vztrajno šepeta?</h2>
@@ -203,12 +190,10 @@
                         <textarea id="thought-input" rows="3" class="w-full bg-transparent text-lg text-center outline-none resize-none font-bold text-slate-800" placeholder="Zapiši svojo misel..."></textarea>
                         <button onclick="toggleListening('thought-input', identifyGremlin)" id="mic-thought-input" class="absolute right-2 bottom-2 mic-btn"><i class="fa-solid fa-microphone"></i></button>
                     </div>
-                    <div id="error-step-1" class="hidden error-box mb-2"></div>
                     <button onclick="identifyGremlin()" class="btn-primary">RAZKRINKAJ GA</button>
                 </div>
             </div>
 
-            <!-- NALAGANJE -->
             <div id="step-loading" class="step-content hidden">
                 <div class="card-tile text-center space-y-6 py-12">
                     <div class="image-container mb-4 mx-auto relative">
@@ -219,7 +204,6 @@
                 </div>
             </div>
 
-            <!-- 2. POIMENOVANJE -->
             <div id="step-2" class="step-content hidden">
                 <div class="card-tile space-y-6">
                     <div class="bg-indigo-50 border-2 border-indigo-100 p-4 rounded-xl">
@@ -236,7 +220,6 @@
                 </div>
             </div>
 
-            <!-- 3. DIALOG PODOBE -->
             <div id="step-3" class="step-content hidden">
                 <div class="card-tile space-y-4">
                     <h3 id="gremlin-dialog-name" class="text-[10px] font-black uppercase text-indigo-600 text-center tracking-widest"></h3>
@@ -254,7 +237,6 @@
                 </div>
             </div>
 
-            <!-- 4. APPRECIATE -->
             <div id="step-4" class="step-content hidden">
                 <div class="card-tile space-y-6 text-center">
                     <div class="bg-indigo-50 p-8 rounded-3xl border-2 border-indigo-200">
@@ -264,7 +246,6 @@
                 </div>
             </div>
 
-            <!-- 5. INQUIRE -->
             <div id="step-5" class="step-content hidden">
                 <div class="card-tile space-y-6">
                     <div class="bg-slate-50 p-5 rounded-xl border-2 border-slate-200 text-center">
@@ -278,29 +259,24 @@
                 </div>
             </div>
 
-            <!-- 6. ZADNJI PRIKAZ VAJE -->
             <div id="step-6" class="step-content hidden">
                 <div class="card-tile space-y-5">
                     <div class="flex justify-between items-center">
                         <span class="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Nevro-Stabilizacija</span>
                     </div>
-                    
                     <div class="image-container bg-white border-2 border-slate-100 p-2">
                         <img id="vaja-img" src="" alt="Vaja" class="w-full h-full object-contain">
                     </div>
-
                     <div class="space-y-2 text-center">
                         <p id="final-synthesis" class="text-sm italic text-slate-600 leading-tight"></p>
                         <h2 id="vaja-title" class="text-2xl font-black uppercase text-indigo-900 tracking-tighter"></h2>
                         <div class="h-1.5 w-16 bg-indigo-500 mx-auto rounded-full"></div>
                         <p id="vaja-how" class="text-lg font-bold text-slate-800 leading-tight"></p>
                     </div>
-
                     <div class="bg-indigo-50 p-4 rounded-xl border-2 border-indigo-100">
                         <p class="text-[10px] font-black uppercase text-indigo-400 mb-1">Tvoja Namera:</p>
                         <p id="summary-action" class="text-md italic font-bold text-indigo-900"></p>
                     </div>
-
                     <button onclick="resetApp()" class="btn-primary">← KONČAJ V MIRU</button>
                 </div>
             </div>
@@ -323,11 +299,22 @@
             "generic": { id: "10-vaja", title: "Popolni dih", how: "Dolg vdih skozi nos, še daljši izdih skozi usta. Občuti olajšanje." }
         };
 
-        let state = { thought: "", gremlinName: "", gremlinData: null, dialogAnswer: "", inquireAnswer: "", imageUrl: "", stressLevel: 0 };
+        let state = { 
+            thought: "", 
+            gremlinName: "", 
+            gremlinData: null, 
+            dialogAnswer: "", 
+            inquireAnswer: "", 
+            imageUrl: "", 
+            stressLevel: 0,
+            isMuted: false,
+            wakeLock: null
+        };
+
         let recognition = null;
         let silenceTimer = null;
 
-        const systemPrompt = "Si SOS Gremlin. Tvoja naloga je prepoznavanje notranjih kritikov. Vedno bodi šaljiv, strog in svetovalen. Govori slovensko. Odgovarjaj IZKLJUČNO v JSON formatu.";
+        const systemPrompt = "Si SOS Gremlin. Tvoja naloga je prepoznavanje notranjih kritikov. Vedno bodi šaljiv, strog in svetovalen. Govori slovensko. Vedno vrni JSON format z numeričnim stress_level poljem.";
 
         function log(msg) { 
             const dbg = document.getElementById('debug-log'); 
@@ -337,45 +324,90 @@
             }
         }
 
+        // --- PREPREČEVANJE IZKLOPA ZASLONA ---
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    state.wakeLock = await navigator.wakeLock.request('screen');
+                    log("Zaslon zaklenjen v prižganem stanju.");
+                }
+            } catch (err) { log("WakeLock error: " + err.message); }
+        }
+
+        // --- GOVOR IN UTIŠANJE ---
+        function toggleMute() {
+            state.isMuted = !state.isMuted;
+            const btn = document.getElementById('mute-btn');
+            if (state.isMuted) {
+                btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+                window.speechSynthesis.cancel();
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+            }
+        }
+
         function speak(text) {
-            if (!window.speechSynthesis || !text) return;
+            if (state.isMuted || !window.speechSynthesis || !text) return;
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'sl-SI';
             window.speechSynthesis.speak(utterance);
         }
 
+        // --- POPRAVEK ZA NUMERIČNI STRES (Fix "nizek/10") ---
+        function ensureNumericStress(val) {
+            if (typeof val === 'number') return val;
+            if (!val) return 5;
+            const s = String(val).toLowerCase();
+            if (s.includes('nizek') || s.includes('nizka')) return 2;
+            if (s.includes('srednje') || s.includes('srednji')) return 5;
+            if (s.includes('visok') || s.includes('visoka')) return 8;
+            const n = parseInt(s);
+            return isNaN(n) ? 5 : n;
+        }
+
+        // --- STRESOMER Z ANIMACIJO ---
         function updateStressMeter(level) {
             const widget = document.getElementById('stress-widget');
             const fill = document.getElementById('stress-fill');
             const display = document.getElementById('stress-display');
             
-            state.stressLevel = level;
+            const numLevel = ensureNumericStress(level);
+            state.stressLevel = numLevel;
             
-            if (widget.classList.contains('hidden')) {
-                widget.classList.remove('hidden');
-            }
+            if (widget.classList.contains('hidden')) widget.classList.remove('hidden');
 
             widget.classList.remove('shake-animation');
             void widget.offsetWidth; 
             widget.classList.add('shake-animation');
 
-            fill.style.width = (level * 10) + "%";
-            display.innerText = level + "/10";
+            fill.style.transition = 'none';
+            fill.style.width = '0%';
+            void fill.offsetWidth; 
+
+            fill.style.transition = 'width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            fill.style.width = (numLevel * 10) + "%";
+            display.innerText = numLevel + "/10";
         }
 
         function showStep(num) {
             document.querySelectorAll('.step-content').forEach(el => el.classList.add('hidden'));
             if (num === 'loading') {
-                document.getElementById('loading-text').innerText = "Odpravljam blokade...";
+                document.getElementById('loading-text').innerText = "Vstopam v tvoje misli...";
                 const imgArea = document.getElementById('loading-gremlin-img');
                 if (state.imageUrl && imgArea) { 
-                    imgArea.src = state.imageUrl; imgArea.classList.remove('hidden'); 
-                    document.getElementById('loading-spinner').classList.add('hidden');
+                    imgArea.src = state.imageUrl; 
+                    imgArea.classList.remove('hidden'); 
+                    const spinner = document.getElementById('loading-spinner');
+                    if(spinner) spinner.classList.add('hidden');
                 }
             }
             const target = document.getElementById(`step-${num}`);
             if (target) target.classList.remove('hidden');
+            
+            if (state.stressLevel > 0 && num !== 1 && num !== 'loading') {
+                updateStressMeter(state.stressLevel);
+            }
         }
 
         async function callAI(prompt) {
@@ -385,8 +417,7 @@
                 if (isLocalPreview) {
                     url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
                     options = {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             contents: [{ parts: [{ text: prompt }] }],
                             systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -395,60 +426,31 @@
                     };
                 } else {
                     url = new URL('/.netlify/functions/gemini-proxy', window.location.origin).toString();
-                    options = {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                    options = { method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                     };
                 }
-                
-                log("Pošiljam vprašanje AI...");
                 const response = await fetch(url, options);
                 const data = await response.json();
-                
-                let text = "";
-                if (data.candidates && data.candidates[0].content.parts[0].text) {
-                    text = data.candidates[0].content.parts[0].text;
-                } else if (data.candidates && data.candidates[0].groundingMetadata) {
-                    // Failover za nekatere Gemini odgovore
-                    text = "undefined";
-                }
-
-                // Agresivno čiščenje JSON
-                if (text.includes("```")) {
-                    text = text.replace(/```json|```/g, "").trim();
-                }
-                
-                if (!text || text === "undefined" || text.trim() === "" || text === "{}") throw new Error("Prazen odgovor");
+                let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+                if (text.includes("```")) text = text.replace(/```json|```/g, "").trim();
                 return text;
             } catch (e) {
-                log(`Napaka pri klicu AI: ${e.message}`);
+                log(`Napaka klica: ${e.message}`);
                 return "undefined";
             }
         }
 
         async function identifyGremlin() {
             const inputEl = document.getElementById('thought-input');
-            const errorEl = document.getElementById('error-step-1');
-            
-            if (!inputEl || inputEl.value.trim().length < 2) {
-                if(errorEl) { errorEl.innerText = "Prosim, zapiši ali povej svojo misel."; errorEl.classList.remove('hidden'); }
-                return;
-            }
-            
-            if(errorEl) errorEl.classList.add('hidden');
+            if (!inputEl || inputEl.value.trim().length < 2) return;
+            requestWakeLock();
             state.thought = inputEl.value;
             showStep('loading');
             
-            const prompt = `Identificiraj Gremlina (nimam_casa, prijazen, konflikt, napaka, dokoncati, kontrola, nisem_dober, stisni) za misel: "${state.thought}". Oceni stress_level (1-10). Vrni JSON: {"type": "koda", "intro": "šaljiv nagovor", "explanation_q": "vprašanje", "stress_level": 7}`;
-            
+            const prompt = `Identificiraj Gremlina (nimam_casa, prijazen, konflikt, napaka, dokoncati, kontrola, nisem_dober, stisni) za: "${state.thought}". Oceni stress_level (1-10). Vrni JSON.`;
             const res = await callAI(prompt);
-            
-            if (res === "undefined") {
-                showStep(1);
-                if(errorEl) { errorEl.innerText = "AI trenutno ni dosegljiv. Poskusi znova čez trenutek."; errorEl.classList.remove('hidden'); }
-                return;
-            }
+            if (res === "undefined") { showStep(1); return; }
             
             try {
                 const data = JSON.parse(res);
@@ -457,31 +459,25 @@
                 state.imageUrl = `images/gremlins/${safeType}.png`;
                 
                 showStep(2); 
-                document.getElementById('gremlin-intro').innerText = data.intro || "Slišim te.";
+                document.getElementById('gremlin-intro').innerText = data.intro;
                 updateStressMeter(data.stress_level || 5);
                 speak(data.intro);
-            } catch (e) {
-                log("Napaka pri branju AI odgovora. Poskušam znova...");
-                showStep(1);
-                if(errorEl) { errorEl.innerText = "Nekaj je šlo narobe pri prepoznavi. Poskusi znova."; errorEl.classList.remove('hidden'); }
-            }
+            } catch (e) { showStep(1); }
         }
 
         function nameGremlin() {
             const nameEl = document.getElementById('gremlin-name');
             if (!nameEl || !nameEl.value) return;
             state.gremlinName = nameEl.value;
-
             const dialogNameEl = document.getElementById('gremlin-dialog-name');
             const explanationQEl = document.getElementById('gremlin-explanation-q');
             const genImg = document.getElementById('generated-gremlin');
 
             if (dialogNameEl) dialogNameEl.innerText = state.gremlinName + " ZAHTEVA TVOJO POZORNOST:";
             if (explanationQEl) {
-                explanationQEl.innerText = state.gremlinData.explanation_q || "Kje v telesu to čutiš?";
-                speak(explanationQEl.innerText);
+                explanationQEl.innerText = state.gremlinData.explanation_q;
+                speak(state.gremlinData.explanation_q);
             }
-            
             showStep(3); 
             if (genImg) { genImg.src = state.imageUrl; genImg.classList.remove('hidden'); }
         }
@@ -491,14 +487,12 @@
             if (!ansEl || !ansEl.value.trim()) return;
             state.dialogAnswer = ansEl.value;
             showStep('loading');
-            
             const res = await callAI(`Uporabnik odgovarja: "${state.dialogAnswer}". Pripravi 'appreciate' in 'inquire'. Oceni stress_level (1-10). Vrni JSON.`);
-            
             if (res === "undefined") { showStep(3); return; }
             try {
                 const data = JSON.parse(res);
                 state.gremlinData = { ...state.gremlinData, ...data };
-                document.getElementById('appreciate-text').innerText = data.appreciate || "Hvala za tvoj iskren odgovor.";
+                document.getElementById('appreciate-text').innerText = data.appreciate;
                 updateStressMeter(data.stress_level || state.stressLevel);
                 showStep(4);
                 speak(data.appreciate);
@@ -508,8 +502,8 @@
         function getInquirePart() {
             const inqEl = document.getElementById('inquire-text');
             if (inqEl) {
-                inqEl.innerText = state.gremlinData.inquire || "Kaj lahko narediš zdaj?";
-                speak(inqEl.innerText);
+                inqEl.innerText = state.gremlinData.inquire;
+                speak(state.gremlinData.inquire);
             }
             showStep(5);
         }
@@ -519,15 +513,12 @@
             if (!ansEl || !ansEl.value.trim()) return;
             state.inquireAnswer = ansEl.value;
             showStep('loading');
-            
-            const finalRes = await callAI(`Končni odgovor: "${state.inquireAnswer}". Napiši 'synthesis' in izberi final_vaja_id. Oceni stress_level (naj bo nizek). Vrni JSON.`);
-            
+            const finalRes = await callAI(`Odgovor: "${state.inquireAnswer}". Napiši sintezo, izberi final_vaja_id in oceni stress_level (nizek). Vrni JSON.`);
             if (finalRes === "undefined") { showStep(5); return; }
             try {
                 const finalData = JSON.parse(finalRes);
                 const exKey = finalData.final_vaja_id || state.gremlinData?.type || "generic";
                 const ex = exercises[exKey] || exercises.generic;
-                
                 const vImg = document.getElementById('vaja-img');
                 const vTitle = document.getElementById('vaja-title');
                 const vHow = document.getElementById('vaja-how');
@@ -546,53 +537,49 @@
             } catch (e) { showStep(5); }
         }
 
+        // --- MIKROFON (Fix podvajanja & sprotni vnos) ---
         function toggleListening(inputId, callback) {
             const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!Speech) { log("Mikrofon ni podprt."); return; }
+            if (!Speech) return;
             if (recognition) { recognition.stop(); return; }
-            
             const inputEl = document.getElementById(inputId);
             recognition = new Speech(); 
             recognition.lang = 'sl-SI'; 
             recognition.continuous = true; 
             recognition.interimResults = true; 
-            
             recognition.onstart = () => { 
                 const btn = document.getElementById(`mic-${inputId}`);
                 if (btn) btn.classList.add('mic-active'); 
                 log("Slušam...");
             };
-
             recognition.onerror = (e) => {
-                log("Mic napaka: " + e.error);
+                log("Mic Error: " + e.error);
                 const btn = document.getElementById(`mic-${inputId}`);
                 if (btn) btn.classList.remove('mic-active');
             };
-            
             recognition.onresult = (e) => {
                 let fullTranscript = "";
+                // POPRAVEK: Vedno zgradimo celoten tekst iz vseh rezultatov
                 for (let i = 0; i < e.results.length; i++) {
                     fullTranscript += e.results[i][0].transcript;
                 }
                 if (inputEl) inputEl.value = fullTranscript;
-                
                 if (silenceTimer) clearTimeout(silenceTimer);
-                silenceTimer = setTimeout(() => { if (recognition) recognition.stop(); }, 1600);
+                silenceTimer = setTimeout(() => { if (recognition) recognition.stop(); }, 1800);
             };
-            
             recognition.onend = () => {
                 const btn = document.getElementById(`mic-${inputId}`);
                 if (btn) btn.classList.remove('mic-active');
                 recognition = null;
-                // Callback samo če je dejansko kaj besedila
-                if (inputEl && inputEl.value.trim().length > 1 && callback) {
-                    callback();
-                }
+                if (inputEl && inputEl.value.trim().length > 1 && callback) callback();
             };
             recognition.start();
         }
 
-        function resetApp() { location.reload(); }
+        function resetApp() { 
+            if (state.wakeLock) state.wakeLock.release();
+            location.reload(); 
+        }
         function initAudio() { if (window.speechSynthesis) window.speechSynthesis.getVoices(); }
     </script>
 </body>
