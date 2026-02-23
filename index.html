@@ -28,7 +28,7 @@
             overflow-x: hidden;
         }
 
-        /* Kartice: Slika na vrhu -> Tekst -> Vnos -> Gumb */
+        /* Kartice: Slika -> Tekst -> Vnos -> Gumb */
         .card-tile {
             background: #ffffff;
             border: 3px solid var(--text-dark);
@@ -50,6 +50,22 @@
             overflow: hidden;
             border: 2px solid var(--text-dark);
             order: 1;
+            position: relative;
+        }
+
+        .gremlin-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--text-dark);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 10;
         }
 
         img {
@@ -155,7 +171,7 @@
     <main class="max-w-md mx-auto w-full flex-grow flex flex-col items-center">
         
         <div id="debug-monitor" class="w-full">
-            <div id="debug-log">Sistem pripravljen na krotitev Gremlinov...</div>
+            <div id="debug-log">Log okno...</div>
         </div>
         
         <div id="steps-container" class="w-full flex-grow flex flex-col justify-center">
@@ -183,7 +199,7 @@
 
             <!-- NALAGANJE -->
             <div id="step-loading" class="step-content hidden">
-                <div class="card-tile text-center py-10">
+                <div class="card-tile text-center py-12">
                     <div class="image-container mx-auto">
                         <div id="loading-spinner" class="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
                     </div>
@@ -195,6 +211,7 @@
             <div id="step-2" class="step-content hidden">
                 <div class="card-tile">
                     <div class="image-container">
+                        <div class="gremlin-badge">Analiza...</div>
                         <img id="step2-img" src="images/gremlins/generic.png" alt="Gremlin">
                     </div>
                     <div class="text-output-area">
@@ -219,6 +236,7 @@
             <div id="step-3" class="step-content hidden">
                 <div class="card-tile">
                     <div class="image-container">
+                        <div class="gremlin-badge">Prepoznan</div>
                         <img id="step3-img" src="images/gremlins/generic.png" alt="Gremlin">
                     </div>
                     <div class="text-output-area">
@@ -243,10 +261,11 @@
             <div id="step-4" class="step-content hidden">
                 <div class="card-tile">
                     <div class="image-container">
+                        <div class="gremlin-badge">Prepoznan</div>
                         <img id="step4-img" src="images/gremlins/generic.png" alt="Gremlin">
                     </div>
                     <div class="text-output-area text-center">
-                        <div class="bg-indigo-50 p-6 rounded-3xl border-2 border-indigo-200 shadow-inner">
+                        <div class="bg-indigo-50 p-6 rounded-3xl border-2 border-indigo-200">
                             <p id="appreciate-text" class="text-xl font-bold italic text-indigo-900"></p>
                         </div>
                     </div>
@@ -260,6 +279,7 @@
             <div id="step-5" class="step-content hidden">
                 <div class="card-tile">
                     <div class="image-container">
+                        <div class="gremlin-badge">Prepoznan</div>
                         <img id="step5-img" src="images/gremlins/generic.png" alt="Gremlin">
                     </div>
                     <div class="text-output-area">
@@ -309,7 +329,12 @@
         
         const validGremlins = ["nimam_casa", "prijazen", "konflikt", "napaka", "dokoncati", "kontrola", "nisem_dober", "stisni", "generic"];
 
-        // Popoln seznam 22 vaj iz tvojega dokumenta
+        const gremlinLabels = {
+            "nimam_casa": "Nimam časa", "prijazen": "Moram biti prijazen", "konflikt": "Izogibanje konfliktu",
+            "napaka": "Strah pred napako", "dokoncati": "Vse moram dokončati", "kontrola": "Potreba po kontroli",
+            "nisem_dober": "Nisem dovolj dober", "stisni": "Saj ni tako hudo", "generic": "Splošni vzorec"
+        };
+
         const exercises = {
             "vprašanja": { id: "1-vaja", title: "Postavljaj boljša vprašanja", how: "Kateri notranji vir moči mi je zdaj na voljo za ta izziv?" },
             "zahteve_viri": { id: "2-vaja", title: "Ravnovesje med zahtevami in viri", how: "Katere vire lahko aktiviraš, da izravnaš trenutne pritiske?" },
@@ -332,20 +357,20 @@
             "varnost": { id: "19-vaja", title: "Ustvari ozadje varnosti", how: "Predstavljaj si prostor, kjer si popolnoma varen." },
             "sistem": { id: "20-vaja", title: "Začuti svoj sistem", how: "Preglej telo. Kje je trenutno najmanj napetosti?" },
             "izbira": { id: "21-vaja", title: "Izberi, kdo želiš biti", how: "Odloči se za eno vrednoto, ki jo boš utelešal danes." },
-            "dovolj": { id: "22-vaja", title: "Kaj je zame zdaj dovolj", how: "Zaznaj vse, kar je v tem trenutku dovolj dobro." },
-            "generic": { id: "10-vaja", title: "Popolni dih", how: "Umirjeno dihanje." }
+            "dovolj": { id: "22-vaja", title: "Kaj je zame zdaj dovolj", how: "Zaznaj vse, kar je v tem trenutku dovolj dobro." }
         };
 
-        let state = { thought: "", gremlinName: "", gremlinData: { type: "generic" }, dialogAnswer: "", inquireAnswer: "", isMuted: false, wakeLock: null, interactionStarted: false, imageUrl: "images/gremlins/generic.png" };
+        let state = { thought: "", gremlinName: "", gremlinData: { type: "generic" }, dialogAnswer: "", inquireAnswer: "", isMuted: false, wakeLock: null, interactionStarted: false };
         let recognition = null;
         let silenceTimer = null;
 
         const systemPromptText = "Si SOS Gremlin, strokovnjak za nevro-kognitivno krotitev. Tvoj slog je šaljiv, strog in svetovalen. Govori slovensko. Odgovarjaj IZKLJUČNO v JSON formatu z uporabo ključev: 'intro', 'explanation_q', 'appreciate', 'inquire', 'synthesis'.";
         
-        const systemPromptDiscrete = `Si tehnični klasifikator. Analiziraj celoten pogovorni kontekst in izberi najboljšo vajo.
+        const systemPromptDiscrete = `Si tehnični klasifikator. Analiziraj vnos in izberi najboljšo kategorijo.
+        V ključu 'type' NE UPORABLJAJ ŠUMNIKOV.
+        DOVOLJENI TIPI: nimam_casa, prijazen, konflikt, napaka, dokoncati, kontrola, nisem_dober, stisni, generic.
         MOŽNE VAJE: vprašanja, zahteve_viri, namen, cikel_daj_sprejmi, reaktivnost, poimenuj, pozornost, resnica, koherenca, dih, škatla, ego, pesti, sprostitev, čuti, gibanje, vidim_slišim, zavest, varnost, sistem, izbira, dovolj.
-        MOŽNI GREMLINI: nimam_casa, prijazen, konflikt, napaka, dokoncati, kontrola, nisem_dober, stisni, generic.
-        Vrni SAMO JSON s poljem 'type' (za gremlina) ali 'final_vaja_id' (za vajo).`;
+        Vrni SAMO JSON s poljem 'type' ali 'final_vaja_id'.`;
 
         function log(msg) { 
             const dbg = document.getElementById('debug-log'); 
@@ -353,11 +378,6 @@
                 const now = new Date().toLocaleTimeString();
                 dbg.innerHTML = `[${now}] ${msg}<br>` + dbg.innerHTML;
             }
-        }
-
-        function getSafeImagePath(type) {
-            const safeType = String(type || "generic").trim().replace(/\s+/g, '_').toLowerCase();
-            return validGremlins.includes(safeType) ? `images/gremlins/${safeType}.png` : `images/gremlins/generic.png`;
         }
 
         async function requestWakeLock() {
@@ -384,11 +404,9 @@
 
         function speak(text) {
             if (state.isMuted || !window.speechSynthesis || !text) return;
-            // Varnostno čiščenje besedila (odstranimo morebitne JSON ostanke)
-            const clean = String(text).replace(/\{.*?\}/g, "").replace(/[\[\]\{\}\"]/g, "").trim();
-            if (clean.toLowerCase() === "undefined" || clean === "") return;
+            if (typeof text !== 'string' || text.toLowerCase().includes("object")) return;
             stopSpeech();
-            const utterance = new SpeechSynthesisUtterance(clean);
+            const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'sl-SI';
             window.speechSynthesis.speak(utterance);
         }
@@ -396,8 +414,7 @@
         function safeParse(text) {
             try {
                 if (text.includes("```")) text = text.replace(/```json|```/g, "").trim();
-                const parsed = JSON.parse(text);
-                return (parsed && typeof parsed === 'object') ? parsed : null;
+                return JSON.parse(text);
             } catch (e) { return null; }
         }
 
@@ -408,7 +425,6 @@
         }
 
         function updateAllImages(url) {
-            state.imageUrl = url;
             ['intro-img', 'step2-img', 'step3-img', 'step4-img', 'step5-img'].forEach(id => {
                 const img = document.getElementById(id);
                 if(img) img.src = url;
@@ -448,24 +464,23 @@
             state.thought = inputEl.value;
             showStep('loading');
 
-            const textPromise = callAI(`Uporabnik pravi: "${state.thought}". Pripravi 'intro' in 'explanation_q'.`, systemPromptText);
+            const textPromise = callAI(`Uporabnik: "${state.thought}". Pripravi 'intro' in 'explanation_q'.`, systemPromptText);
             const discretePromise = callAI(`Uporabnik: "${state.thought}". Vrni 'type'.`, systemPromptDiscrete);
 
             try {
                 const textRes = await textPromise;
-                const data = safeParse(textRes) || { intro: "Slišim te. Poglejva to misel.", explanation_q: "Kje to čutiš?" };
-                
+                const data = safeParse(textRes) || { intro: "Slišim te.", explanation_q: "Kje to čutiš?" };
                 showStep(2);
-                const introTxt = (typeof data.intro === 'string') ? data.intro : "Poglejva ta glas od blizu.";
-                document.getElementById('gremlin-intro').innerText = introTxt;
+                document.getElementById('gremlin-intro').innerText = data.intro;
                 state.gremlinData = { ...state.gremlinData, ...data };
-                speak(introTxt);
+                speak(data.intro);
 
                 discretePromise.then(res => {
                     const discData = safeParse(res);
                     if (discData && discData.type) {
-                        state.gremlinData.type = discData.type;
-                        updateAllImages(getSafeImagePath(discData.type));
+                        const safeType = discData.type.toLowerCase().replace(/[^a-z0-9_]/g, "");
+                        document.querySelectorAll('.gremlin-badge').forEach(el => el.innerText = gremlinLabels[safeType] || "Vzorec");
+                        updateAllImages(`images/gremlins/${validGremlins.includes(safeType) ? safeType : "generic"}.png`);
                     }
                 });
             } catch (e) { showStep(1); }
@@ -476,10 +491,10 @@
             if (!nameEl || !nameEl.value) return;
             stopSpeech();
             state.gremlinName = nameEl.value;
-            document.getElementById('gremlin-dialog-name').innerText = state.gremlinName + " ZAHTEVA ODGOVOR:";
-            const qTxt = (typeof state.gremlinData.explanation_q === 'string') ? state.gremlinData.explanation_q : "Kje v telesu to čutiš?";
-            document.getElementById('gremlin-explanation-q').innerText = qTxt;
-            speak(qTxt);
+            document.getElementById('gremlin-dialog-name').innerText = state.gremlinName + " ŽELI ODGOVOR:";
+            const q = state.gremlinData.explanation_q || "Kje v telesu to čutiš?";
+            document.getElementById('gremlin-explanation-q').innerText = q;
+            speak(q);
             showStep(3);
         }
 
@@ -489,22 +504,17 @@
             stopSpeech();
             state.dialogAnswer = ansEl.value;
             showStep('loading');
-            
             const res = await callAI(`Občutki: "${state.dialogAnswer}". Pripravi 'appreciate' in 'inquire'.`, systemPromptText);
-            const data = safeParse(res) || { appreciate: "Hvala za tvoj odgovor.", inquire: "Kaj lahko storiš zdaj?" };
+            const data = safeParse(res) || { appreciate: "Hvala za odgovor.", inquire: "Kaj lahko storiš?" };
             state.gremlinData = { ...state.gremlinData, ...data };
-            
-            const appTxt = (typeof data.appreciate === 'string') ? data.appreciate : "Hvala za tvoj odgovor.";
-            document.getElementById('appreciate-text').innerText = appTxt;
-            showStep(4);
-            speak(appTxt);
+            document.getElementById('appreciate-text').innerText = data.appreciate;
+            showStep(4); speak(data.appreciate);
         }
 
         function getInquirePart() {
-            const txt = (typeof state.gremlinData.inquire === 'string') ? state.gremlinData.inquire : "Kaj si se odločil?";
+            const txt = state.gremlinData.inquire || "Kaj si se odločil?";
             document.getElementById('inquire-text').innerText = txt;
-            speak(txt);
-            showStep(5);
+            speak(txt); showStep(5);
         }
 
         async function returnToStabilization() {
@@ -513,7 +523,6 @@
             stopSpeech();
             state.inquireAnswer = ansEl.value;
             showStep('loading');
-
             const textPromise = callAI(`Namera: "${state.inquireAnswer}". Napiši 'synthesis'.`, systemPromptText);
             const fullCtx = `MISEL: ${state.thought} | OBČUTKI: ${state.dialogAnswer} | NAMERA: ${state.inquireAnswer}`;
             const discretePromise = callAI(`Kontekst: "${fullCtx}". Izberi 'final_vaja_id'.`, systemPromptDiscrete);
@@ -521,26 +530,20 @@
             try {
                 const textRes = await textPromise;
                 const textData = safeParse(textRes) || { synthesis: "Umiriva sistem." };
-                const synthTxt = (typeof textData.synthesis === 'string') ? textData.synthesis : "Naredila sva velik korak.";
-                
                 showStep(6);
-                document.getElementById('final-synthesis').innerText = synthTxt;
+                document.getElementById('final-synthesis').innerText = textData.synthesis;
                 document.getElementById('summary-action').innerText = state.inquireAnswer;
-                speak(synthTxt);
+                speak(textData.synthesis);
 
                 discretePromise.then(res => {
                     const discData = safeParse(res);
-                    const exKey = (discData && discData.final_vaja_id) ? discData.final_vaja_id : "generic";
+                    const exKey = discData?.final_vaja_id || "generic";
                     const ex = exercises[exKey] || exercises.generic;
-                    
                     const vImg = document.getElementById('vaja-img');
-                    if (vImg) { 
-                        vImg.src = `images/vaje/${ex.id}.png`; 
-                        vImg.style.opacity = "1"; 
-                    }
+                    if (vImg) { vImg.src = `images/vaje/${ex.id}.png`; vImg.style.opacity = "1"; }
                     document.getElementById('vaja-title').innerText = ex.title;
                     document.getElementById('vaja-how').innerText = ex.how;
-                    speak(synthTxt + ". Zdaj te vabim na vajo: " + ex.title);
+                    speak(textData.synthesis + ". Zdaj vaja: " + ex.title);
                 });
             } catch (e) { showStep(5); }
         }
@@ -549,21 +552,28 @@
             const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!Speech) return;
             if (recognition) { recognition.stop(); return; }
+            
             const inputEl = document.getElementById(inputId);
             recognition = new Speech(); 
             recognition.lang = 'sl-SI'; recognition.continuous = true; recognition.interimResults = true; 
+            
             recognition.onstart = () => { document.getElementById(`mic-${inputId}`).classList.add('mic-active'); stopSpeech(); };
+            
             recognition.onresult = (e) => {
-                let fullTranscript = "";
-                for (let i = 0; i < e.results.length; i++) { fullTranscript += e.results[i][0].transcript; }
-                if (inputEl) { inputEl.value = fullTranscript; inputEl.scrollTop = inputEl.scrollHeight; }
+                let currentText = "";
+                for (let i = 0; i < e.results.length; i++) { currentText += e.results[i][0].transcript; }
+                if (inputEl) { inputEl.value = currentText; inputEl.scrollTop = inputEl.scrollHeight; }
+                
+                // Restart timerja ob vsakem rezultatu (3 sekunde tišine)
                 if (silenceTimer) clearTimeout(silenceTimer);
-                silenceTimer = setTimeout(() => { if (recognition) recognition.stop(); }, 2000);
+                silenceTimer = setTimeout(() => { if (recognition) recognition.stop(); }, 3000);
             };
+            
             recognition.onend = () => {
                 document.getElementById(`mic-${inputId}`).classList.remove('mic-active');
                 recognition = null;
-                if (inputEl && inputEl.value.trim().length > 1 && callback) callback();
+                // Samodejno pošiljanje samo, če je vnos daljši od 3 znakov
+                if (inputEl && inputEl.value.trim().length > 3 && callback) callback();
             };
             recognition.start();
         }
