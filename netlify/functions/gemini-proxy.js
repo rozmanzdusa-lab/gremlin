@@ -1,6 +1,6 @@
 /**
- * SOS Gremlin - Netlify Proxy Funkcija
- * POSODOBLJENA VERZIJA: Podpira prenos polnih sistemskih navodil.
+ * SOS Gremlin - Univerzalni Netlify Proxy
+ * Podpira: Tekst, Klasifikacijo in TTS (Zvok)
  */
 
 const apiKey = process.env.GEMINI_API_KEY;
@@ -11,42 +11,34 @@ exports.handler = async function (event, context) {
     }
     
     try {
-        if (!apiKey) throw new Error("GEMINI_API_KEY missing");
+        if (!apiKey) throw new Error("GEMINI_API_KEY missing v Netlify nastavitvah");
 
         const body = JSON.parse(event.body);
         
-        // Združimo frontend sistemska navodila s tistimi iz okolja (če obstajajo)
-        const systemInstruction = body.systemInstruction || { parts: [{ text: "Si SOS asistent." }] };
+        // Določimo model: Če gre za zvočne modalitete, uporabimo TTS model, sicer navaden Flash
+        const isTTS = body.generationConfig?.responseModalities?.includes("AUDIO");
+        const model = isTTS ? "gemini-2.5-flash-preview-tts" : "gemini-2.5-flash";
+        
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-        const payload = {
-            contents: body.contents,
-            systemInstruction: systemInstruction,
-            generationConfig: body.generationConfig || {
-                responseMimeType: "application/json",
-                temperature: 0.1 
-            }
-        };
-
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(body)
         });
 
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error?.message || "AI API Error");
-        }
-
         const data = await response.json();
+
         return {
             statusCode: 200,
-            headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+            headers: { 
+                "Access-Control-Allow-Origin": "*",
+                "Content-Type": "application/json" 
+            },
             body: JSON.stringify(data)
         };
 
     } catch (error) {
-        console.error("Proxy Error:", error.message);
         return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
     }
 };
