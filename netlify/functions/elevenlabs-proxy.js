@@ -1,12 +1,10 @@
 /**
  * SOS Gremlin - ElevenLabs Proxy
  * Skrbi za varno generiranje škratovskega glasu
+ * POSODOBLJENO: Brez node-fetch (uporablja vgrajen fetch za Netlify)
  */
 
-const fetch = require('node-fetch');
-
 exports.handler = async function (event, context) {
-    // Dovoli samo POST zahteve
     if (event.httpMethod !== "POST") {
         return { statusCode: 405, body: "Method Not Allowed" };
     }
@@ -18,11 +16,11 @@ exports.handler = async function (event, context) {
         if (!apiKey) {
             return { 
                 statusCode: 500, 
-                body: JSON.stringify({ error: "Manjka ELEVENLABS_API_KEY v nastavitvah Netlify." }) 
+                body: JSON.stringify({ error: "Manjka ELEVENLABS_API_KEY v Netlify nastavitvah." }) 
             };
         }
 
-        // Privzet glas, če ni podan (tvoj specifičen ID za škrata)
+        // Tvoj specifičen ID za škratovski glas
         const targetVoiceId = voice_id || "Z7RrOqZFTyLpIlzCgfsp";
 
         const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${targetVoiceId}`, {
@@ -46,13 +44,9 @@ exports.handler = async function (event, context) {
 
         if (!response.ok) {
             const errorData = await response.json();
-            return { 
-                statusCode: response.status, 
-                body: JSON.stringify(errorData) 
-            };
+            return { statusCode: response.status, body: JSON.stringify(errorData) };
         }
 
-        // Pridobimo zvočne podatke
         const audioBuffer = await response.arrayBuffer();
 
         return {
@@ -66,9 +60,6 @@ exports.handler = async function (event, context) {
         };
 
     } catch (error) {
-        return { 
-            statusCode: 500, 
-            body: JSON.stringify({ error: error.message }) 
-        };
+        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
     }
 };
