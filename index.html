@@ -37,6 +37,7 @@
         #video-container {
             position: fixed; inset: 0; background: black; z-index: 210;
             display: none; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.5s ease;
         }
 
         video { max-width: 100%; max-height: 100%; object-fit: contain; }
@@ -49,10 +50,10 @@
 
         #speaking-indicator {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #6366f1; color: white; padding: 8px 16px;
-            border-radius: 999px; font-size: 10px; font-weight: 800; text-transform: uppercase;
+            background: #f59e0b; color: black; padding: 8px 16px;
+            border-radius: 999px; font-size: 10px; font-weight: 900; text-transform: uppercase;
             letter-spacing: 1px; display: none; items-center: center; gap: 8px; z-index: 50;
-            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4);
+            box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.4); border: 2px solid black;
         }
 
         /* CARD STYLING */
@@ -83,9 +84,10 @@
             border: 3px solid var(--text-dark); box-shadow: 4px 4px 0px 0px var(--text-dark);
             text-transform: uppercase; transition: all 0.2s;
         }
+        .btn-primary:active { transform: scale(0.98); }
 
         .mic-active { background: #ef4444 !important; color: white !important; border-color: #991b1b !important; animation: micPulse 1.2s infinite; }
-        @keyframes micPulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); } 70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { transform: scale(1); } }
+        @keyframes micPulse { 0% { transform: scale(1); } 70% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
         .hidden { display: none !important; }
         
@@ -99,7 +101,7 @@
 
     <!-- 1. SPLASH SCREEN -->
     <div id="intro-splash">
-        <img src="images/gremlins/generic.png" class="splash-logo w-48 h-48 mb-8" alt="Logo">
+        <img src="images/gremlins/generic.png" class="splash-logo w-48 h-48 mb-8 floating-gremlin" alt="Logo">
         <div class="mt-4 text-center px-6">
             <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">SOS Gremlin</h1>
             <p class="text-slate-500 font-bold mb-8">Premium ElevenLabs Experience</p>
@@ -107,8 +109,11 @@
         </div>
     </div>
 
+    <!-- 2. VIDEO CONTAINER -->
     <div id="video-container">
-        <video id="intro-video" playsinline><source src="videos/intro.mp4" type="video/mp4"></video>
+        <video id="intro-video" playsinline preload="auto">
+            <source src="videos/intro.mp4" type="video/mp4">
+        </video>
     </div>
 
     <!-- UI STATUSI -->
@@ -118,7 +123,7 @@
     </div>
 
     <div id="speaking-indicator">
-        <i class="fa-solid fa-volume-high animate-pulse"></i>
+        <i class="fa-solid fa-ghost animate-bounce"></i>
         <span>Škrat govori...</span>
     </div>
 
@@ -142,12 +147,8 @@
             <div id="step-1" class="step-content">
                 <div class="card-tile">
                     <div class="technical-name-label">GENERIC.PNG</div>
-                    <div class="image-container">
-                        <img id="intro-img" class="floating-gremlin" src="images/gremlins/generic.png" alt="Gremlin">
-                    </div>
-                    <div class="text-output-area text-center">
-                        <h2 class="text-xl font-extrabold text-slate-900 leading-tight">Kateri glas ti danes vztrajno šepeta?</h2>
-                    </div>
+                    <div class="image-container"><img id="intro-img" class="floating-gremlin" src="images/gremlins/generic.png"></div>
+                    <div class="text-output-area text-center"><h2 class="text-xl font-extrabold text-slate-900 leading-tight">Kateri glas ti danes vztrajno šepeta?</h2></div>
                     <div class="input-wrapper">
                         <div class="relative bg-slate-50 rounded-xl p-3 border-2 border-slate-200">
                             <textarea id="thought-input" rows="2" class="w-full bg-transparent text-lg text-center outline-none resize-none font-bold text-slate-800" placeholder="Zapiši misel..."></textarea>
@@ -162,76 +163,58 @@
             <div id="step-2" class="step-content hidden">
                 <div class="card-tile">
                     <div class="technical-name-label" id="label-step2">...</div>
-                    <div class="image-container">
-                        <img id="step2-img" class="floating-gremlin" src="images/gremlins/generic.png">
-                    </div>
-                    <div class="text-output-area">
-                        <p id="gremlin-intro" class="text-md font-bold italic text-indigo-900 bg-indigo-50 p-3 rounded-xl shadow-sm text-center"></p>
-                    </div>
+                    <div class="image-container"><img id="step2-img" class="floating-gremlin" src="images/gremlins/generic.png"></div>
+                    <div class="text-output-area"><p id="gremlin-intro" class="text-md font-bold italic text-indigo-900 bg-indigo-50 p-3 rounded-xl shadow-sm text-center"></p></div>
                     <div class="input-wrapper text-center">
                         <label class="text-2xl font-black uppercase text-indigo-600 mb-2 block animate-bounce">Daj mu ime:</label>
-                        <div class="relative bg-white rounded-xl border-4 border-slate-900 overflow-hidden shadow-lg">
-                            <input type="text" id="gremlin-name" class="w-full bg-transparent p-5 text-center text-indigo-700 text-3xl font-black outline-none uppercase" placeholder="IME...">
-                        </div>
+                        <div class="relative bg-white rounded-xl border-4 border-slate-900 overflow-hidden shadow-lg"><input type="text" id="gremlin-name" class="w-full bg-transparent p-5 text-center text-indigo-700 text-3xl font-black outline-none uppercase" placeholder="IME..."></div>
                     </div>
                     <button onclick="nameGremlin()" class="btn-primary mt-2">USTVARI IME</button>
                 </div>
             </div>
 
-            <!-- STEP 3 -->
             <div id="step-3" class="step-content hidden">
                 <div class="card-tile">
                     <div class="technical-name-label" id="label-step3">...</div>
                     <div class="image-container"><img id="step3-img" class="floating-gremlin" src="images/gremlins/generic.png"></div>
                     <div class="text-output-area text-center">
                         <h3 id="gremlin-dialog-name" class="text-[10px] font-black uppercase text-indigo-600 mb-1"></h3>
-                        <div class="bg-slate-50 p-3 rounded-xl border-2 border-slate-200">
-                            <p id="gremlin-explanation-q" class="text-md font-bold italic text-slate-800"></p>
-                        </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border-2 border-slate-200"><p id="gremlin-explanation-q" class="text-md font-bold italic text-slate-800 text-center"></p></div>
                     </div>
                     <div class="input-wrapper">
                         <div class="relative bg-white rounded-xl border-3 border-slate-900">
                             <textarea id="dialog-answer" rows="2" class="w-full bg-transparent p-4 text-center outline-none resize-none font-bold" placeholder="Tvoj odgovor..."></textarea>
-                            <button onclick="event.stopPropagation(); toggleListening('dialog-answer', getAppreciatePart)" id="mic-dialog-answer" class="absolute right-1 bottom-1 w-10 h-10 flex items-center justify-center rounded-full border-2 border-slate-900 bg-white"><i class="fa-solid fa-microphone"></i></button>
+                            <button onclick="event.stopPropagation(); toggleListening('dialog-answer', getAppreciatePart)" id="mic-dialog-answer" class="absolute right-1 bottom-1 w-10 h-10 flex items-center justify-center rounded-full border-2 border-slate-900 bg-white shadow-sm"><i class="fa-solid fa-microphone"></i></button>
                         </div>
                     </div>
                     <button onclick="getAppreciatePart()" class="btn-primary">NADALJUJ</button>
                 </div>
             </div>
 
-            <!-- STEP 4 -->
             <div id="step-4" class="step-content hidden">
                 <div class="card-tile">
                     <div class="technical-name-label" id="label-step4">...</div>
                     <div class="image-container"><img id="step4-img" class="floating-gremlin" src="images/gremlins/generic.png"></div>
-                    <div class="text-output-area text-center">
-                        <div class="bg-indigo-50 p-6 rounded-3xl border-2 border-indigo-200">
-                            <p id="appreciate-text" class="text-lg font-bold italic text-indigo-900"></p>
-                        </div>
-                    </div>
+                    <div class="text-output-area text-center"><div class="bg-indigo-50 p-6 rounded-3xl border-2 border-indigo-200"><p id="appreciate-text" class="text-lg font-bold italic text-indigo-900 text-center"></p></div></div>
                     <button onclick="getInquirePart()" class="btn-primary">KAJ PA ZDAJ?</button>
                 </div>
             </div>
 
-            <!-- STEP 5 -->
             <div id="step-5" class="step-content hidden">
                 <div class="card-tile">
                     <div class="technical-name-label" id="label-step5">...</div>
                     <div class="image-container"><img id="step5-img" class="floating-gremlin" src="images/gremlins/generic.png"></div>
-                    <div class="text-output-area text-center">
-                        <div class="bg-slate-50 p-5 rounded-xl border-2 border-slate-200"><h4 id="inquire-text" class="text-lg font-bold text-slate-900"></h4></div>
-                    </div>
+                    <div class="text-output-area text-center"><div class="bg-slate-50 p-5 rounded-xl border-2 border-slate-200"><h4 id="inquire-text" class="text-lg font-bold text-slate-900 text-center"></h4></div></div>
                     <div class="input-wrapper">
                         <div class="relative bg-white rounded-xl border-3 border-slate-900">
                             <textarea id="inquire-answer" rows="2" class="w-full bg-transparent p-4 text-center outline-none resize-none font-bold" placeholder="Tvoj odgovor..."></textarea>
-                            <button onclick="event.stopPropagation(); toggleListening('inquire-answer', returnToStabilization)" id="mic-inquire-answer" class="absolute right-1 bottom-1 w-10 h-10 flex items-center justify-center rounded-full border-2 border-slate-900 bg-white"><i class="fa-solid fa-microphone"></i></button>
+                            <button onclick="event.stopPropagation(); toggleListening('inquire-answer', returnToStabilization)" id="mic-inquire-answer" class="absolute right-1 bottom-1 w-10 h-10 flex items-center justify-center rounded-full border-2 border-slate-900 bg-white shadow-sm"><i class="fa-solid fa-microphone"></i></button>
                         </div>
                     </div>
                     <button onclick="returnToStabilization()" class="btn-primary">NADALJUJ</button>
                 </div>
             </div>
 
-            <!-- STEP 6 -->
             <div id="step-6" class="step-content hidden">
                 <div class="card-tile">
                     <div class="technical-name-label" id="label-step6">VAJA</div>
@@ -251,200 +234,157 @@
     <script>
         const apiKey = ""; 
         const validGremlins = ["nimam_casa", "prijazen", "konflikt", "napaka", "dokoncati", "kontrola", "nisem_dober", "stisni", "generic"];
-        const gremlinNames = { "nimam_casa": "Nimam časa", "prijazen": "Moram biti prijazen", "konflikt": "Izogibanje konfliktu", "napaka": "Strah pred napako", "dokoncati": "Vse moram dokončati", "kontrola": "Potreba po kontroli", "nisem_dober": "Nisem dovolj dober", "stisni": "Saj ni tako hudo", "generic": "Kralj vseh gremlinov" };
+        const exercises = new Map([ ["1-vaja", { title: "Vprašanja", how: "Kaj je zdaj res?" }], ["11-vaja", { title: "Dihanje", how: "Škatlasto dihanje 4x4." }], ["22-vaja", { title: "Dovolj", how: "Kaj je zdaj dovolj?" }] ]);
 
-        const exercises = new Map([
-            ["1-vaja", { title: "Postavljaj boljša vprašanja", how: "Kateri notranji vir moči mi je zdaj na voljo?" }],
-            ["11-vaja", { title: "Škatlasto dihanje", how: "Vdih 5s, zadrži 5s, izdih 5s, zadrži 5s. Ponovi 4x." }],
-            ["22-vaja", { title: "Kaj je zame zdaj dovolj", how: "Vprašaj se: 'Kaj je zame v tem trenutku dovolj?'" }]
-        ]);
+        const sysPersona = "Si SOS Gremlin. Tvoj slog je ŠKRATOVSKI: hripav, igriv, malce nesramen. Vedno začni z medmetom ali smehom (Hehehe!, Oho!, Hm...). Uporabljaj '...' za premore in VELIKE ČRKE za poudarke. Govori slovensko. Vrni JSON: intro, explanation_q, appreciate, inquire, synthesis.";
 
-        // --- SISTEMSKI PROMPTI ZA ŠKRATOVSKI SLOG ---
-        const sysPersona = "Si SOS Gremlin. Tvoj slog je ŠKRATOVSKI: hripav, igriv, malce nesramen a moder. Vedno začni z medmetom ali smehom (Hehehe!, Oho!, Hm...). Uporabljaj '...' za dramatične premore in VELIKE ČRKE za poudarek pomembnih besed. Govori slovensko. Vrni JSON polja: intro, explanation_q, appreciate, inquire, synthesis.";
-
-        let state = { thought: "", gremlinName: "", gremlinData: { type: "generic" }, isMuted: false, isLoading: false, audioUnlocked: false };
-        let recognition = null;
-        let globalAudio = new Audio();
+        let state = { thought: "", gremlinData: { type: "generic" }, isMuted: false, audioUnlocked: false };
+        let audioQueue = [], isProcessingQueue = false, nextAudioCache = null, globalAudio = new Audio();
         const isLocal = window.location.hostname.includes("goog") || window.location.protocol === "blob:";
 
-        // --- AUDIO CHAINING ENGINE ---
-        let audioQueue = [];
-        let isProcessingQueue = false;
-        let nextAudioCache = null;
-
+        // --- AUDIO ENGINE ---
         async function addToAudioQueue(text, isStatic = false, fileName = null) {
             if (state.isMuted) return;
-            if (isStatic) {
-                audioQueue.push({ type: 'static', url: `audio/intros/${fileName}.mp3` });
-            } else if (text) {
-                // Razbijemo besedilo na stavke za hitrejši ElevenLabs odziv
-                const chunks = text.split(/(?<=[.!?])\s+/).filter(t => t.trim().length > 0);
-                chunks.forEach(chunk => audioQueue.push({ type: 'tts', text: chunk.trim() }));
-            }
+            if (isStatic) audioQueue.push({ type: 'static', url: `audio/intros/${fileName}.mp3` });
+            else if (text) text.split(/(?<=[.!?])\s+/).filter(t => t.length > 0).forEach(c => audioQueue.push({ type: 'tts', text: c.trim() }));
             if (!isProcessingQueue) processAudioQueue();
         }
 
         async function processAudioQueue() {
-            if (audioQueue.length === 0) {
-                isProcessingQueue = false;
-                document.getElementById('speaking-indicator').style.display = 'none';
-                return;
-            }
-
+            if (audioQueue.length === 0) { isProcessingQueue = false; document.getElementById('speaking-indicator').style.display = 'none'; return; }
             isProcessingQueue = true;
             const item = audioQueue.shift();
             document.getElementById('speaking-indicator').style.display = 'flex';
-
             try {
-                let audioUrl = null;
-                if (item.type === 'static') {
-                    audioUrl = item.url;
-                } else {
-                    audioUrl = (nextAudioCache && nextAudioCache.text === item.text) ? nextAudioCache.url : await fetchAudioBlob(item.text);
-                }
-
-                if (audioUrl) {
-                    globalAudio.src = audioUrl;
+                let url = (nextAudioCache && nextAudioCache.text === item.text) ? nextAudioCache.url : await fetchAudioBlob(item.text, item.type === 'static' ? item.url : null);
+                if (url) {
+                    globalAudio.pause();
+                    globalAudio.src = url;
                     await globalAudio.play();
-                    
-                    // Pre-fetch naslednjega kosa med predvajanjem trenutnega
                     if (audioQueue.length > 0 && audioQueue[0].type === 'tts') {
-                        const nextText = audioQueue[0].text;
-                        fetchAudioBlob(nextText).then(url => { nextAudioCache = { text: nextText, url: url }; });
+                        const nxt = audioQueue[0].text; fetchAudioBlob(nxt).then(u => nextAudioCache = { text: nxt, url: u });
                     }
-
                     globalAudio.onended = () => processAudioQueue();
-                } else {
-                    processAudioQueue();
-                }
-            } catch (e) {
-                console.warn("Audio Chaining Error", e);
-                processAudioQueue();
-            }
+                } else processAudioQueue();
+            } catch (e) { processAudioQueue(); }
         }
 
-        async function fetchAudioBlob(text) {
-            if (isLocal) {
-                // V Canvas predogledu uporabimo Gemini TTS kot nadomestek
-                return await fetchGeminiTTS(text);
-            } else {
-                // Na Netlifyju uporabimo tvoj ElevenLabs proxy (id glasu Z7RrOqZFTyLpIlzCgfsp)
-                return await fetchElevenLabsBlob(text);
-            }
-        }
-
-        async function fetchElevenLabsBlob(text) {
+        async function fetchAudioBlob(text, staticUrl) {
+            if (staticUrl) return staticUrl;
+            if (isLocal) return await fetchGeminiTTS(text);
             try {
                 const res = await fetch('/.netlify/functions/elevenlabs-proxy', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        text: text,
-                        voice_id: "Z7RrOqZFTyLpIlzCgfsp" 
-                    })
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, voice_id: "Z7RrOqZFTyLpIlzCgfsp" })
                 });
-                if (!res.ok) throw new Error("ElevenLabs Proxy Failed");
                 const blob = await res.blob();
                 return URL.createObjectURL(blob);
-            } catch (e) {
-                console.error("ElevenLabs Error:", e);
-                return null;
-            }
+            } catch (e) { return null; }
         }
 
         async function fetchGeminiTTS(text) {
             try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-                const response = await fetch(url, {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ contents: [{ parts: [{ text: `Say in Slovenian: ${text}` }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } }, model: "gemini-2.5-flash-preview-tts" })
                 });
-                const result = await response.json();
-                const pcm64 = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-                if (pcm64) {
-                    const buffer = Uint8Array.from(atob(pcm64), c => c.charCodeAt(0)).buffer;
-                    const wavHeader = new ArrayBuffer(44);
-                    const view = new DataView(wavHeader);
-                    const writeString = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
-                    writeString(0, 'RIFF'); view.setUint32(4, 36 + buffer.byteLength, true); writeString(8, 'WAVE'); writeString(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, 24000, true); view.setUint32(28, 48000, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); writeString(36, 'data'); view.setUint32(40, buffer.byteLength, true);
-                    return URL.createObjectURL(new Blob([wavHeader, buffer], { type: 'audio/wav' }));
-                }
+                const d = await res.json();
+                const pcm = d.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                if (!pcm) return null;
+                const buffer = Uint8Array.from(atob(pcm), c => c.charCodeAt(0)).buffer;
+                const wavHeader = new ArrayBuffer(44);
+                const view = new DataView(wavHeader);
+                const writeString = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+                writeString(0, 'RIFF'); view.setUint32(4, 36 + buffer.byteLength, true); writeString(8, 'WAVE'); writeString(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, 24000, true); view.setUint32(28, 48000, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); writeString(36, 'data'); view.setUint32(40, buffer.byteLength, true);
+                return URL.createObjectURL(new Blob([wavHeader, buffer], { type: 'audio/wav' }));
             } catch (e) { return null; }
         }
 
-        function unlockAudio() { if (!state.audioUnlocked) { globalAudio.play().then(() => { globalAudio.pause(); state.audioUnlocked = true; }).catch(() => {}); } }
-
-        // --- STT (Single-Shot) ---
-        function toggleListening(inputId, callback) {
-            if (recognition) { recognition.stop(); return; }
-            const inputEl = document.getElementById(inputId);
-            const micBtn = document.getElementById(`mic-${inputId}`);
-            const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!Speech) return;
-            recognition = new Speech(); recognition.lang = 'sl-SI';
-            recognition.onstart = () => { micBtn.classList.add('mic-active'); inputEl.value = ""; inputEl.placeholder = "Škrat posluša..."; inputEl.readOnly = true; };
-            recognition.onresult = (e) => { inputEl.value = e.results[0][0].transcript; };
-            recognition.onend = () => { micBtn.classList.remove('mic-active'); inputEl.readOnly = false; inputEl.placeholder = "Zapiši..."; const finalVal = inputEl.value.trim(); recognition = null; if (finalVal.length > 2 && callback) setTimeout(() => callback(), 800); };
-            recognition.start();
+        function unlockAudio() { 
+            if (!state.audioUnlocked) { 
+                globalAudio.play().then(() => { 
+                    globalAudio.pause(); 
+                    state.audioUnlocked = true; 
+                }).catch(e => console.error("Unlock Error")); 
+            } 
         }
 
         async function callAI(prompt, sys) {
             const url = isLocal ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}` : '/.netlify/functions/gemini-proxy';
-            const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: sys }] }, generationConfig: { responseMimeType: "application/json", temperature: 0.7 } }) });
-            const data = await response.json(); 
-            return data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: sys }] }, generationConfig: { responseMimeType: "application/json", temperature: 0.7 } }) });
+            const data = await res.json(); return data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
         }
 
         async function identifyGremlin() {
-            const input = document.getElementById('thought-input'); if (!input || input.value.trim().length < 2) return;
+            const input = document.getElementById('thought-input'); if (!input.value.trim()) return;
             state.thought = input.value; startLoading();
-            const [resT, resL] = await Promise.all([
-                callAI(`Uporabnik: "${state.thought}". Identificiraj, uporabi ŠKRATOVSKI smeh in pripravi 'intro' ter 'explanation_q'.`, sysPersona),
-                callAI(`Uporabnik: "${state.thought}". Vrni 'type'.`, "Vrni JSON {type: 'koda'}. Kode: nimam_casa, prijazen, konflikt, napaka, dokoncati, kontrola, nisem_dober, stisni, generic.")
-            ]);
-            const dataT = JSON.parse(resT.replace(/```json|```/g, "") || "{}");
-            const dataL = JSON.parse(resL.replace(/```json|```/g, "") || "{}");
+            const [resT, resL] = await Promise.all([callAI(`Uporabnik: "${state.thought}".`, sysPersona), callAI(`Uporabnik: "${state.thought}". Vrni 'type'.`, "Vrni JSON {type: '...'} (nimam_casa, prijazen, konflikt, napaka, dokoncati, kontrola, nisem_dober, stisni, generic).")]);
+            const dataT = JSON.parse(resT.replace(/```json|```/g, ""));
+            const dataL = JSON.parse(resL.replace(/```json|```/g, ""));
             const sType = validGremlins.includes(dataL.type) ? dataL.type : "generic";
-            state.gremlinData = { ...state.gremlinData, ...dataT, type: sType };
+            state.gremlinData = { ...dataT, type: sType };
             updateVisuals(sType);
-            const finalI = (dataT.intro || "Hehehe, oho!") + " Jaz sem tvoj Gremlin! Kako naj mi bo ime?";
-            stopLoading(); showStep(2); 
-            document.getElementById('gremlin-intro').innerText = finalI;
+            stopLoading(); showStep(2);
+            document.getElementById('gremlin-intro').innerText = dataT.intro;
             addToAudioQueue(null, true, sType);
-            addToAudioQueue(finalI);
+            addToAudioQueue(dataT.intro);
         }
 
-        function updateVisuals(type) {
-            const file = type.replace(/_/g, " "); 
-            ['step2-img', 'step3-img', 'step4-img', 'step5-img'].forEach(id => { const el = document.getElementById(id); if (el) { el.src = `images/gremlins/${file}.png`; el.onerror = () => { el.src = 'images/gremlins/generic.png'; }; } });
-            document.getElementById('label-step2').innerText = file.toUpperCase() + ".PNG";
-        }
-
-        function nameGremlin() { state.gremlinName = document.getElementById('gremlin-name').value; document.getElementById('gremlin-dialog-name').innerText = state.gremlinName.toUpperCase() + ":"; document.getElementById('gremlin-explanation-q').innerText = state.gremlinData.explanation_q; showStep(3); addToAudioQueue(state.gremlinData.explanation_q); }
-        async function getAppreciatePart() { state.dialogAnswer = document.getElementById('dialog-answer').value; startLoading(); const res = await callAI(`Misel: "${state.thought}", Odgovor: "${state.dialogAnswer}". Pripravi ŠKRATOVSKI 'appreciate' in 'inquire'.`, sysPersona); const data = JSON.parse(res.replace(/```json|```/g, "") || "{}"); stopLoading(); state.gremlinData.inquire = data.inquire; document.getElementById('appreciate-text').innerText = data.appreciate; showStep(4); addToAudioQueue(data.appreciate); }
+        function updateVisuals(t) { ['step2-img', 'step3-img', 'step4-img', 'step5-img'].forEach(id => document.getElementById(id).src = `images/gremlins/${t.replace(/_/g, " ")}.png`); document.getElementById('label-step2').innerText = t.toUpperCase() + ".PNG"; }
+        function nameGremlin() { document.getElementById('gremlin-dialog-name').innerText = document.getElementById('gremlin-name').value.toUpperCase() + ":"; document.getElementById('gremlin-explanation-q').innerText = state.gremlinData.explanation_q; showStep(3); addToAudioQueue(state.gremlinData.explanation_q); }
+        async function getAppreciatePart() { state.dialogAnswer = document.getElementById('dialog-answer').value; startLoading(); const res = await callAI(`Misel: "${state.thought}", Odgovor: "${state.dialogAnswer}".`, sysPersona); const data = JSON.parse(res.replace(/```json|```/g, "")); stopLoading(); state.gremlinData.inquire = data.inquire; document.getElementById('appreciate-text').innerText = data.appreciate; showStep(4); addToAudioQueue(data.appreciate); }
         function getInquirePart() { document.getElementById('inquire-text').innerText = state.gremlinData.inquire; showStep(5); addToAudioQueue(state.gremlinData.inquire); }
         async function returnToStabilization() { 
-            state.inquireAnswer = document.getElementById('inquire-answer').value; startLoading(); 
+            startLoading(); 
             const [resT, resL] = await Promise.all([
-                callAI(`Namera: "${state.inquireAnswer}". Napiši ŠKRATOVSKO sintezo.`, sysPersona), 
+                callAI(`Namera: "${document.getElementById('inquire-answer').value}".`, sysPersona), 
                 callAI(`MISEL: ${state.thought}. Izberi ID vaje.`, "Vrni JSON {final_vaja_id: '11-vaja'}.")
             ]); 
-            const dataT = JSON.parse(resT.replace(/```json|```/g, "") || "{}"); 
-            const dataL = JSON.parse(resL.replace(/```json|```/g, "") || "{}"); 
-            const exId = exercises.has(dataL.final_vaja_id) ? dataL.final_vaja_id : "11-vaja"; 
-            const ex = exercises.get(exId); 
-            stopLoading(); showStep(6); 
-            document.getElementById('vaja-img').src = `images/vaje/${exId}.png`; 
+            const dataT = JSON.parse(resT.replace(/```json|```/g, "")); 
+            const dataL = JSON.parse(resL.replace(/```json|```/g, "")); 
+            const ex = exercises.get(dataL.final_vaja_id) || exercises.get("11-vaja"); 
+            stopLoading(); 
+            showStep(6); 
+            document.getElementById('vaja-img').src = `images/vaje/${dataL.final_vaja_id}.png`; 
             document.getElementById('vaja-title').innerText = ex.title; 
             document.getElementById('vaja-how').innerText = ex.how; 
-            document.getElementById('final-synthesis').innerText = dataT.synthesis || ""; 
-            addToAudioQueue((dataT.synthesis || "") + ". Zdaj vaja: " + ex.title); 
+            document.getElementById('final-synthesis').innerText = dataT.synthesis; 
+            addToAudioQueue(dataT.synthesis + ". Zdaj vaja: " + ex.title); 
         }
 
-        function playIntroVideo() { unlockAudio(); document.getElementById('intro-splash').style.opacity = '0'; setTimeout(() => document.getElementById('intro-splash').style.display = 'none', 800); document.getElementById('video-container').style.display = 'flex'; setTimeout(() => { document.getElementById('video-container').style.display = 'none'; addToAudioQueue("Hehehe! Oho! Jaz sem tvoj SOS škrat. Kateri glas ti danes šepeta?"); }, 2500); }
+        function toggleListening(id, cb) { const Speech = window.SpeechRecognition || window.webkitSpeechRecognition; if (!Speech) return; const rec = new Speech(); rec.lang = 'sl-SI'; rec.onstart = () => document.getElementById(`mic-${id}`).classList.add('mic-active'); rec.onresult = (e) => document.getElementById(id).value = e.results[0][0].transcript; rec.onend = () => { document.getElementById(`mic-${id}`).classList.remove('mic-active'); if (cb) setTimeout(cb, 800); }; rec.start(); }
+        
+        function playIntroVideo() { 
+            unlockAudio(); 
+            const splash = document.getElementById('intro-splash'); 
+            const container = document.getElementById('video-container'); 
+            const video = document.getElementById('intro-video'); 
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.style.display = 'none';
+                container.style.display = 'flex';
+                setTimeout(() => container.style.opacity = '1', 10);
+                const skipTimeout = setTimeout(() => finishVideo(), 3500);
+                video.play().catch(e => {
+                    clearTimeout(skipTimeout);
+                    finishVideo();
+                });
+                video.onended = () => { clearTimeout(skipTimeout); finishVideo(); };
+                video.onerror = () => { clearTimeout(skipTimeout); finishVideo(); };
+            }, 800);
+
+            function finishVideo() {
+                container.style.opacity = '0';
+                setTimeout(() => {
+                    container.style.display = 'none';
+                    addToAudioQueue("Hehehe! Oho! Jaz sem tvoj SOS škrat. Kateri glas ti danes šepeta?");
+                }, 500);
+            }
+        }
+
         function startLoading() { document.getElementById('loading-overlay').style.display = 'flex'; }
         function stopLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
-        function showStep(num) { document.querySelectorAll('.step-content').forEach(el => el.classList.add('hidden')); document.getElementById(`step-${num}`).classList.remove('hidden'); }
+        function showStep(n) { document.querySelectorAll('.step-content').forEach(el => el.classList.add('hidden')); document.getElementById(`step-${n}`).classList.remove('hidden'); }
         function toggleMute() { state.isMuted = !state.isMuted; document.getElementById('mute-btn').innerHTML = state.isMuted ? '<i class="fa-solid fa-volume-xmark"></i>' : '<i class="fa-solid fa-volume-high"></i>'; if (state.isMuted) globalAudio.pause(); }
         function resetApp() { location.reload(); }
     </script>
