@@ -1,61 +1,63 @@
 /**
- * SOS Neurobot - ElevenLabs TTS Proxy (Version 3)
- * POPRAVEK: Vrednost stability nastavljena na 0.5 (Natural), da zadosti TTD zahtevam modela v3.
+ * SOS Gremlin - ElevenLabs Proxy
+ * Skrbi za varno generiranje škratovskega glasu
  */
 
-const apiKey = process.env.ELEVENLABS_API_KEY;
-
-// Tvoj specifičen Voice ID
-const voiceId = "NOpBlnGInO9m6vDvFkFC"; 
+const fetch = require('node-fetch');
 
 exports.handler = async function (event, context) {
+    // Dovoli samo POST zahteve
     if (event.httpMethod !== "POST") {
-        return { statusCode: 405, body: JSON.stringify({ error: "Metoda ni dovoljena." }) };
+        return { statusCode: 405, body: "Method Not Allowed" };
     }
 
     try {
-        const { text } = JSON.parse(event.body);
-        
+        const { text, voice_id, voice_settings } = JSON.parse(event.body);
+        const apiKey = process.env.ELEVENLABS_API_KEY;
+
         if (!apiKey) {
-            throw new Error("V Netlify nastavitvah manjka ELEVENLABS_API_KEY.");
+            return { 
+                statusCode: 500, 
+                body: JSON.stringify({ error: "Manjka ELEVENLABS_API_KEY v nastavitvah Netlify." }) 
+            };
         }
 
-        const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`;
+        // Privzet glas, če ni podan (tvoj specifičen ID za škrata)
+        const targetVoiceId = voice_id || "Z7RrOqZFTyLpIlzCgfsp";
 
-        const response = await fetch(url, {
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${targetVoiceId}`, {
             method: 'POST',
             headers: {
+                'accept': 'audio/mpeg',
+                'xi-api-key': apiKey,
                 'Content-Type': 'application/json',
-                'xi-api-key': apiKey
             },
             body: JSON.stringify({
                 text: text,
-                model_id: "eleven_v3", 
-                voice_settings: {
-                    /**
-                     * POPRAVEK NAPAKE 'invalid_ttd_stability':
-                     * Glede na loge mora biti vrednost ena izmed [0.0, 0.5, 1.0].
-                     * Uporabljamo 0.5 za najbolj naraven in uravnotežen govor.
-                     */
-                    stability: 0.5, 
+                model_id: "eleven_multilingual_v2",
+                voice_settings: voice_settings || {
+                    stability: 0.3,
                     similarity_boost: 0.8,
-                    style: 0.0,
+                    style: 0.45,
                     use_speaker_boost: true
                 }
             })
         });
 
         if (!response.ok) {
-            const errData = await response.json();
-            console.error("ElevenLabs Error Details:", errData);
-            throw new Error(errData.detail?.message || "Napaka pri komunikaciji z ElevenLabs.");
+            const errorData = await response.json();
+            return { 
+                statusCode: response.status, 
+                body: JSON.stringify(errorData) 
+            };
         }
 
+        // Pridobimo zvočne podatke
         const audioBuffer = await response.arrayBuffer();
 
         return {
             statusCode: 200,
-            headers: { 
+            headers: {
                 "Content-Type": "audio/mpeg",
                 "Access-Control-Allow-Origin": "*"
             },
@@ -64,7 +66,6 @@ exports.handler = async function (event, context) {
         };
 
     } catch (error) {
-        console.error("ElevenLabs Proxy Error:", error.message);
         return { 
             statusCode: 500, 
             body: JSON.stringify({ error: error.message }) 
