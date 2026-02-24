@@ -379,7 +379,7 @@
             ["11-vaja", { title: "Škatlasto dihanje", how: "Vdih 5s, zadrži 5s, izdih 5s, zadrži 5s. Ponovi 4x." }],
             ["12-vaja", { title: "Razbijalec ega", how: "Dvigni roke nad glavo. Ritmično jih premikaj gor-dol." }],
             ["13-vaja", { title: "Pesti jeze", how: "Stisni pesti, zadrži napetost, nato sprosti z izdihom." }],
-            ["14-vaja", { title: "Progresivna sprostitev", how: "Zavestno napni eno mišično skupino za 7s, nato popolnoma sprosti." }],
+            ["14-vaja", { title: "Progresivna sprostitev", how: "Napni eno mišično skupino za 7s, nato popolnoma sprosti." }],
             ["15-vaja", { title: "Prizemljitev s čuti", how: "Zaznaj stik stopal s tlemi. Poimenuj en zvok in en vonj." }],
             ["16-vaja", { title: "Nežno somatsko gibanje", how: "Počasi se premikaj, kot telesu prija." }],
             ["17-vaja", { title: "Vidim – slišim – čutim", how: "Poimenuj 3 stvari, ki jih vidiš, 3 zvoke in 3 občutke." }],
@@ -610,30 +610,50 @@
             speak((textData.synthesis || "") + ". Zdaj vaja: " + ex.title);
         }
 
+        // --- PRVA REŠITEV: STT (Single-Shot) ---
         function toggleListening(inputId, callback) {
             stopSpeechAndMic(); 
             const inputEl = document.getElementById(inputId);
             const micBtn = document.getElementById(`mic-${inputId}`);
+            
             if (recognition) { recognition.stop(); return; }
+            
             const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!Speech) return;
-            recognition = new Speech(); recognition.lang = 'sl-SI'; recognition.continuous = true; recognition.interimResults = true;
-            recognition.onstart = () => { micBtn.classList.add('mic-active'); inputEl.value = ""; inputEl.dataset.finalText = ""; inputEl.placeholder = "Poslušam..."; inputEl.readOnly = true; };
+            
+            recognition = new Speech();
+            recognition.lang = 'sl-SI';
+            
+            // NAJHITREJŠI POPRAVEK: Izklop continuous in interim za stabilnost na Androidu
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            
+            recognition.onstart = () => {
+                micBtn.classList.add('mic-active');
+                inputEl.value = "";
+                inputEl.placeholder = "Poslušam te...";
+                inputEl.readOnly = true;
+            };
+            
             recognition.onresult = (e) => {
-                let finalT = inputEl.dataset.finalText || "", interimT = "";
-                for (let i = e.resultIndex; i < e.results.length; i++) {
-                    if (e.results[i].isFinal) finalT += e.results[i][0].transcript;
-                    else interimT += e.results[i][0].transcript;
-                }
-                inputEl.dataset.finalText = finalT; inputEl.value = finalT + interimT;
-                if (silenceTimer) clearTimeout(silenceTimer);
-                silenceTimer = setTimeout(() => { if (recognition) recognition.stop(); }, 3000);
+                // Brskalnik vrne celoten prepis v enem kosu ob koncu govora
+                const transcript = e.results[0][0].transcript;
+                inputEl.value = transcript;
             };
+            
             recognition.onend = () => {
-                micBtn.classList.remove('mic-active'); inputEl.readOnly = false; inputEl.placeholder = inputEl.dataset.original;
-                const finalVal = inputEl.value.trim(); recognition = null;
-                if (finalVal.length > 2 && callback) callback();
+                micBtn.classList.remove('mic-active');
+                inputEl.readOnly = false;
+                inputEl.placeholder = inputEl.dataset.original;
+                const finalVal = inputEl.value.trim();
+                recognition = null;
+                
+                // Če je prepis uspešen, avtomatsko nadaljuj po 800ms premoru
+                if (finalVal.length > 2 && callback) {
+                    setTimeout(() => callback(), 800);
+                }
             };
+            
             recognition.start();
         }
 
