@@ -48,12 +48,29 @@
             z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center;
         }
 
+        #loading-text {
+            animation: textPulse 2s infinite ease-in-out;
+        }
+
+        @keyframes textPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.98); }
+        }
+
         #speaking-indicator {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
             background: #10b981; color: white; padding: 8px 16px;
             border-radius: 999px; font-size: 10px; font-weight: 800; text-transform: uppercase;
             letter-spacing: 1px; display: none; items-center: center; gap: 8px; z-index: 50;
             box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
+        }
+
+        /* PROGRESS BAR */
+        #progress-container {
+            width: 100%; height: 4px; background: #e2e8f0; position: fixed; top: 0; left: 0; z-index: 150;
+        }
+        #progress-bar {
+            width: 16%; height: 100%; background: var(--brand-indigo); transition: width 0.5s ease;
         }
 
         .step-content { 
@@ -106,13 +123,16 @@
 </head>
 <body onclick="unlockAudio()">
 
+    <div id="progress-container"><div id="progress-bar"></div></div>
+
     <!-- 1. SPLASH SCREEN -->
     <div id="intro-splash">
         <img src="images/gremlins/generic.png" class="splash-logo w-40 mb-8 floating-gremlin" alt="Logo">
         <div class="text-center px-6">
             <h1 class="text-3xl font-black uppercase text-slate-900 tracking-tighter">SOS Gremlin</h1>
             <p class="text-slate-500 font-bold mb-8 italic">Neuro-krotilec glasov</p>
-            <button onclick="playIntroVideo()" class="btn-primary px-12">ZAČNI SEJO</button>
+            <!-- SPREMENJEN NAPIS NA GUMBU -->
+            <button onclick="playIntroVideo()" class="btn-primary px-12">PRIKLIČI SVOJEGA GREMLINA</button>
         </div>
     </div>
 
@@ -126,7 +146,7 @@
     <!-- UI STATUSI -->
     <div id="loading-overlay">
         <div class="w-16 h-16 border-[6px] border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-        <p id="loading-text" class="text-xl font-black text-indigo-700 mt-6 uppercase text-center px-4 tracking-widest">Analiziram...</p>
+        <p id="loading-text" class="text-xl font-black text-indigo-700 mt-8 uppercase text-center px-4 tracking-widest min-h-[3em] flex items-center">Analiziram...</p>
     </div>
 
     <div id="speaking-indicator">
@@ -200,7 +220,7 @@
                     </div>
                     <div class="input-wrapper">
                         <div class="relative bg-white rounded-xl border-3 border-slate-900">
-                            <textarea id="dialog-answer" rows="2" class="w-full bg-transparent p-4 text-center outline-none resize-none font-bold" placeholder="Tvoj odgovor..."></textarea>
+                            <textarea id="dialog-answer" rows="2" class="w-full bg-transparent p-4 text-center outline-none resize-none font-bold" placeholder="Tvoj odgovor..." data-original="Tvoj odgovor..."></textarea>
                             <button onclick="event.stopPropagation(); toggleListening('dialog-answer', getAppreciatePart)" id="mic-dialog-answer" class="absolute right-1 bottom-1 w-10 h-10 flex items-center justify-center rounded-full border-2 border-slate-900 bg-white shadow-sm"><i class="fa-solid fa-microphone"></i></button>
                         </div>
                     </div>
@@ -234,7 +254,7 @@
                     </div>
                     <div class="input-wrapper">
                         <div class="relative bg-white rounded-xl border-3 border-slate-900">
-                            <textarea id="inquire-answer" rows="2" class="w-full bg-transparent p-4 text-center outline-none resize-none font-bold" placeholder="Tvoj odgovor..."></textarea>
+                            <textarea id="inquire-answer" rows="2" class="w-full bg-transparent p-4 text-center outline-none resize-none font-bold" placeholder="Tvoj odgovor..." data-original="Tvoj odgovor..."></textarea>
                             <button onclick="event.stopPropagation(); toggleListening('inquire-answer', returnToStabilization)" id="mic-inquire-answer" class="absolute right-1 bottom-1 w-10 h-10 flex items-center justify-center rounded-full border-2 border-slate-900 bg-white shadow-sm"><i class="fa-solid fa-microphone"></i></button>
                         </div>
                     </div>
@@ -261,6 +281,22 @@
 
     <script>
         const apiKey = ""; 
+        const loadingMessages = [
+            "Brskam po tvojih možganih...", 
+            "Krotim male pošasti...", 
+            "Poliram gremlinove kremplje...", 
+            "Pogajam se z amigdalo...", 
+            "Resetiram živčni sistem...", 
+            "Uravnavam prefrontalni korteks...", 
+            "Hranim lačne nevrone...",
+            "Umirjam dežurne paničarje...",
+            "Uravnavam nivo škratovščine...",
+            "Pripravljam nevro-stropalo...",
+            "Štejem gremlinove zobe...",
+            "Iščem stikalo za mir...",
+            "Čistim nevronske poti s metlo...",
+            "Lovim misli v nevidno mrežo..."
+        ];
         const validGremlins = ["nimam_casa", "prijazen", "konflikt", "napaka", "dokoncati", "kontrola", "nisem_dober", "stisni", "generic"];
         
         const exercises = new Map([
@@ -292,11 +328,10 @@
 
         let state = { thought: "", gremlinData: { type: "generic" }, isMuted: false, audioUnlocked: false };
         let audioQueue = [], isProcessingQueue = false, nextAudioCache = null, globalAudio = new Audio();
-        let recognition = null, silenceTimer = null;
+        let recognition = null, silenceTimer = null, loadingInterval = null;
         
         const isLocal = window.location.hostname.includes("goog") || window.location.protocol === "blob:";
 
-        // ODSTRANJEN TYPEWRITER - BESEDILO SE PRIKAŽE TAKOJ
         async function addToAudioQueue(text, elementId = null, isStatic = false, fileName = null) {
             if (state.isMuted) return;
             if (isStatic) audioQueue.push({ type: 'static', url: `audio/intros/${fileName}.mp3`, elementId: elementId });
@@ -314,7 +349,6 @@
                 if (url) {
                     globalAudio.pause();
                     globalAudio.src = url;
-                    // Besedilo prikažemo takoj (ne čakamo na konec avdia)
                     await globalAudio.play();
                     if (audioQueue.length > 0 && audioQueue[0].type === 'tts') {
                         const nxt = audioQueue[0].text; fetchAudioBlob(nxt).then(u => { if(u) nextAudioCache = { text: nxt, url: u }; });
@@ -363,21 +397,29 @@
         function toggleListening(id, cb) {
             if (recognition) { if (silenceTimer) clearTimeout(silenceTimer); recognition.stop(); return; }
             globalAudio.pause(); audioQueue = []; isProcessingQueue = false;
+            document.getElementById('speaking-indicator').style.display = 'none';
             const inputEl = document.getElementById(id);
             const micBtn = document.getElementById(`mic-${id}`);
             const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!Speech) return;
-            recognition = new Speech(); recognition.lang = 'sl-SI'; recognition.continuous = false; recognition.interimResults = false;
+            recognition = new Speech(); recognition.lang = 'sl-SI'; recognition.continuous = true; recognition.interimResults = false;
             recognition.onstart = () => { micBtn.classList.add('mic-active'); inputEl.value = ""; inputEl.placeholder = "Poslušam te..."; };
             recognition.onresult = (e) => {
-                inputEl.value = e.results[0][0].transcript;
+                const transcript = e.results[e.results.length - 1][0].transcript;
+                inputEl.value = transcript; 
                 if (silenceTimer) clearTimeout(silenceTimer);
                 silenceTimer = setTimeout(() => { if (recognition) recognition.stop(); }, 3000);
             };
             recognition.onend = () => {
-                micBtn.classList.remove('mic-active'); inputEl.placeholder = inputEl.dataset.original || "Zapiši...";
-                const finalVal = inputEl.value.trim(); recognition = null;
-                if (finalVal.length > 2 && cb) setTimeout(cb, 500);
+                micBtn.classList.remove('mic-active'); 
+                const finalVal = inputEl.value.trim();
+                if (finalVal.length <= 2) {
+                    inputEl.value = "Nisem te slišal...";
+                    setTimeout(() => { inputEl.value = ""; inputEl.placeholder = inputEl.dataset.original || "Zapiši..."; recognition = null; }, 1500);
+                } else {
+                    setTimeout(() => { inputEl.placeholder = inputEl.dataset.original || "Zapiši..."; recognition = null; if (cb) cb(); }, 2000);
+                }
+                if (silenceTimer) clearTimeout(silenceTimer);
             };
             recognition.start();
         }
@@ -397,37 +439,16 @@
             const sType = validGremlins.includes(dataL.type) ? dataL.type : "generic";
             state.gremlinData = { ...dataT, type: sType };
             updateVisuals(sType);
-            stopLoading(); showStep(2);
-            document.getElementById('gremlin-intro').innerText = dataT.intro; // PRIKAZ TAKOJ
+            stopLoading(); showStep(2); updateProgress(33);
+            document.getElementById('gremlin-intro').innerText = dataT.intro;
             addToAudioQueue(null, null, true, sType);
             addToAudioQueue(dataT.intro);
         }
 
         function updateVisuals(t) { ['step2-img', 'step3-img', 'step4-img', 'step5-img'].forEach(id => { const el = document.getElementById(id); if(el) el.src = `images/gremlins/${t.replace(/_/g, " ")}.png`; }); document.getElementById('label-step2').innerText = t.toUpperCase() + ".PNG"; }
-        
-        function nameGremlin() { 
-            const name = document.getElementById('gremlin-name').value;
-            document.getElementById('gremlin-dialog-name').innerText = name.toUpperCase() + ":"; 
-            document.getElementById('gremlin-explanation-q').innerText = state.gremlinData.explanation_q; // PRIKAZ TAKOJ
-            showStep(3); 
-            addToAudioQueue(state.gremlinData.explanation_q); 
-        }
-        
-        async function getAppreciatePart() { 
-            state.dialogAnswer = document.getElementById('dialog-answer').value; startLoading(); 
-            const res = await callAI(`Misel: "${state.thought}", Odgovor: "${state.dialogAnswer}".`, sysPersona); 
-            const data = JSON.parse(res.replace(/```json|```/g, "")); 
-            stopLoading(); state.gremlinData.inquire = data.inquire; 
-            document.getElementById('appreciate-text').innerText = data.appreciate; // PRIKAZ TAKOJ
-            showStep(4); addToAudioQueue(data.appreciate); 
-        }
-        
-        function getInquirePart() { 
-            document.getElementById('inquire-text').innerText = state.gremlinData.inquire; // PRIKAZ TAKOJ
-            showStep(5); 
-            addToAudioQueue(state.gremlinData.inquire); 
-        }
-        
+        function nameGremlin() { const name = document.getElementById('gremlin-name').value; document.getElementById('gremlin-dialog-name').innerText = name.toUpperCase() + ":"; document.getElementById('gremlin-explanation-q').innerText = state.gremlinData.explanation_q; showStep(3); updateProgress(50); addToAudioQueue(state.gremlinData.explanation_q); }
+        async function getAppreciatePart() { state.dialogAnswer = document.getElementById('dialog-answer').value; startLoading(); const res = await callAI(`Misel: "${state.thought}", Odgovor: "${state.dialogAnswer}".`, sysPersona); const data = JSON.parse(res.replace(/```json|```/g, "")); stopLoading(); state.gremlinData.inquire = data.inquire; document.getElementById('appreciate-text').innerText = data.appreciate; showStep(4); updateProgress(66); addToAudioQueue(data.appreciate); }
+        function getInquirePart() { document.getElementById('inquire-text').innerText = state.gremlinData.inquire; showStep(5); updateProgress(83); addToAudioQueue(state.gremlinData.inquire); }
         async function returnToStabilization() { 
             startLoading(); 
             const [resT, resL] = await Promise.all([callAI(`Namera: "${document.getElementById('inquire-answer').value}".`, sysPersona), callAI(`MISEL: ${state.thought}. Izberi ID vaje (1-vaja do 22-vaja).`, "Vrni JSON {final_vaja_id: '...-vaja'}.")]); 
@@ -436,14 +457,10 @@
             const exIdRaw = String(dataL.final_vaja_id || "11-vaja").toLowerCase().replace(/[^a-z0-9_-]/g, "");
             const exId = exercises.has(exIdRaw) ? exIdRaw : "11-vaja";
             const ex = exercises.get(exId); 
-            stopLoading(); showStep(6); 
+            stopLoading(); showStep(6); updateProgress(100);
             const imgEl = document.getElementById('vaja-img');
-            imgEl.src = `images/vaje/${exId}.png`; 
-            imgEl.onerror = () => imgEl.src = 'images/gremlins/generic.png';
-            document.getElementById('vaja-title').innerText = ex.title; 
-            document.getElementById('vaja-how').innerText = ex.how; 
-            document.getElementById('final-synthesis').innerText = dataT.synthesis; 
-            addToAudioQueue(dataT.synthesis + ". Zdaj vaja: " + ex.title); 
+            imgEl.src = `images/vaje/${exId}.png`; imgEl.onerror = () => imgEl.src = 'images/gremlins/generic.png';
+            document.getElementById('vaja-title').innerText = ex.title; document.getElementById('vaja-how').innerText = ex.how; document.getElementById('final-synthesis').innerText = dataT.synthesis; addToAudioQueue(dataT.synthesis + ". Zdaj vaja: " + ex.title); 
         }
 
         function playIntroVideo() { 
@@ -464,15 +481,29 @@
                 setTimeout(() => { 
                     container.style.display = 'none'; 
                     const txt = "Hehehe! Oho! Jaz sem tvoj SOS škrat. Kateri glas ti danes šepeta?";
-                    document.getElementById('txt-step-1').innerText = txt; // PRIKAZ TAKOJ
-                    addToAudioQueue(txt); 
+                    document.getElementById('txt-step-1').innerText = txt; addToAudioQueue(txt); 
                 }, 500);
             }
         }
 
-        function startLoading() { document.getElementById('loading-overlay').style.display = 'flex'; }
-        function stopLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
+        function startLoading() { 
+            document.getElementById('loading-overlay').style.display = 'flex'; 
+            let i = 0;
+            if (loadingInterval) clearInterval(loadingInterval);
+            document.getElementById('loading-text').innerText = loadingMessages[0];
+            loadingInterval = setInterval(() => {
+                i++;
+                document.getElementById('loading-text').innerText = loadingMessages[i % loadingMessages.length];
+            }, 3000); // Menjanje na 3 sekunde
+        }
+
+        function stopLoading() { 
+            document.getElementById('loading-overlay').style.display = 'none'; 
+            if (loadingInterval) { clearInterval(loadingInterval); loadingInterval = null; }
+        }
+
         function showStep(n) { document.querySelectorAll('.step-content').forEach(el => el.classList.add('hidden')); document.getElementById(`step-${n}`).classList.remove('hidden'); }
+        function updateProgress(p) { document.getElementById('progress-bar').style.width = p + '%'; }
         function toggleMute() { state.isMuted = !state.isMuted; document.getElementById('mute-btn').innerHTML = state.isMuted ? '<i class="fa-solid fa-volume-xmark"></i>' : '<i class="fa-solid fa-volume-high"></i>'; if (state.isMuted) globalAudio.pause(); }
         function resetApp() { location.reload(); }
     </script>
