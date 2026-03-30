@@ -39,7 +39,7 @@ exports.handler = async function (event, context) {
             },
             body: JSON.stringify({
                 text: text,
-                model_id: "eleven_v3",
+                model_id: "eleven_multilingual_v2",
                 voice_settings: voice_settings || {
                     stability: 0.25,      // Nižja stabilnost = več karakterja in emocij
                     similarity_boost: 0.8,
